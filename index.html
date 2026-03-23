@@ -337,213 +337,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
 .lock-err{font-size:11px;color:#ff6b6b;height:16px;margin-top:2px}
 
 </style>
-<script src="https://accounts.google.com/gsi/client" async defer>
-/* ═══ MOBILE SIDEBAR ═══ */
-function toggleSB(){
-  var sb=document.getElementById('sidebar');
-  var ov=document.getElementById('sb-overlay');
-  var isOpen=sb.classList.contains('open');
-  if(isOpen){closeSB();}else{sb.classList.add('open');ov.classList.add('on');}
-}
-function closeSB(){
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sb-overlay').classList.remove('on');
-}
-function isMobile(){return window.innerWidth<=768;}
-
-/* 뷰 전환 시 모바일은 사이드바 닫기 */
-var _origSW=SW;
-function SW(v){_origSW(v);if(isMobile())closeSB();}
-
-/* 프로젝트 선택 시 모바일은 사이드바 닫기 */
-var _origTP=TP;
-function TP(id){_origTP(id);if(isMobile())closeSB();}
-
-/* 화면 크기에 따라 햄버거 표시/숨김 */
-function checkMobile(){
-  var hb=document.getElementById('hamburger');
-  if(!hb)return;
-  if(window.innerWidth<=768){
-    hb.style.display='flex';
-  } else {
-    hb.style.display='none';
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sb-overlay').classList.remove('on');
-  }
-}
-window.addEventListener('resize',checkMobile);
-/* 터치 스와이프로 사이드바 열기 */
-(function(){
-  var sx=null;
-  document.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;},{passive:true});
-  document.addEventListener('touchend',function(e){
-    if(sx===null)return;
-    var dx=e.changedTouches[0].clientX-sx;
-    if(sx<30&&dx>60){toggleSB();}
-    else if(dx<-60&&document.getElementById('sidebar').classList.contains('open')){closeSB();}
-    sx=null;
-  },{passive:true});
-})();
-
-
-/* ═══ LOCK SCREEN ═══ */
-var LK_HASH='8bad14298ab83285f4e55a80579a4464f58499744c063d331b6c51893adaae8f';
-var lkBuf='';
-var lkMax=20;
-
-function sha256(str){
-  var buf=new TextEncoder().encode(str);
-  return crypto.subtle.digest('SHA-256',buf).then(function(h){
-    return Array.from(new Uint8Array(h)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
-  });
-}
-
-function lkInput(c){
-  if(lkBuf.length>=lkMax)return;
-  lkBuf+=c;
-  lkUpdateDots();
-}
-function lkDel(){
-  lkBuf=lkBuf.slice(0,-1);
-  lkUpdateDots();
-  document.getElementById('lk-err').textContent='';
-}
-function lkUpdateDots(){
-  var dots=document.querySelectorAll('.lk-dot');
-  var len=Math.min(lkBuf.length,6);
-  dots.forEach(function(d,i){
-    d.classList.toggle('filled',i<len);
-    d.classList.remove('error');
-  });
-}
-function lkCheck(){
-  if(!lkBuf)return;
-  sha256(lkBuf).then(function(h){
-    if(h===LK_HASH){
-      // 인증 성공 — 24시간 세션 저장
-      sessionStorage.setItem('kstat_auth', Date.now().toString());
-      document.getElementById('lock-screen').classList.add('hidden');
-    } else {
-      var dots=document.querySelectorAll('.lk-dot');
-      dots.forEach(function(d){d.classList.add('error');d.classList.remove('filled');});
-      document.getElementById('lk-err').textContent='비밀번호가 올바르지 않습니다';
-      lkBuf='';
-      setTimeout(function(){
-        dots.forEach(function(d){d.classList.remove('error');});
-        document.getElementById('lk-err').textContent='';
-      },1200);
-    }
-  });
-}
-// 키보드 지원
-document.addEventListener('keydown',function(e){
-  if(document.getElementById('lock-screen').classList.contains('hidden'))return;
-  if(e.key>='0'&&e.key<='9')lkInput(e.key);
-  else if(e.key==='Backspace')lkDel();
-  else if(e.key==='Enter')lkCheck();
-});
-// 세션 체크 (같은 세션이면 재입력 불필요)
-(function(){
-  var auth=sessionStorage.getItem('kstat_auth');
-  if(auth&&Date.now()-parseInt(auth)<86400000){
-    document.getElementById('lock-screen').classList.add('hidden');
-  }
-})();
-
-
-/* ═══ LOCK SCREEN ═══ */
-var _PW='201702';
-function checkPW(){
-  var v=document.getElementById('lock-input').value;
-  if(v===_PW){
-    document.getElementById('lock-screen').style.display='none';
-    sessionStorage.setItem('kstat_auth','1');
-    loadData();
-  } else {
-    document.getElementById('lock-err').style.display='block';
-    document.getElementById('lock-input').value='';
-    document.getElementById('lock-input').focus();
-  }
-}
-function initAuth(){
-  if(sessionStorage.getItem('kstat_auth')==='1'){
-    document.getElementById('lock-screen').style.display='none';
-    loadData();
-  } else {
-    // show lock, defer loadData
-    document.getElementById('app-loading').style.display='none';
-    setTimeout(function(){document.getElementById('lock-input').focus();},100);
-  }
-}
-
-
-/* ═══ LOCK SCREEN ═══ */
-var LK_PWD = 'MjAxNzAy';
-var lkInput = '';
-var lkUnlocked = false;
-
-function lkCheck(){
-  if(lkUnlocked) return;
-  // 세션 내 인증 유지
-  if(sessionStorage.getItem('kstat_auth')==='1'){lkUnlock();return;}
-  document.getElementById('lock-screen').classList.remove('hidden');
-}
-
-function lkPress(d){
-  if(lkInput.length>=6) return;
-  lkInput+=d;
-  lkRender();
-  if(lkInput.length===6) setTimeout(lkVerify,120);
-}
-
-function lkDel(){
-  lkInput=lkInput.slice(0,-1);
-  lkRender();
-  document.getElementById('lock-err').textContent='';
-}
-
-function lkClear(){
-  lkInput='';
-  lkRender();
-  document.getElementById('lock-err').textContent='';
-}
-
-function lkRender(){
-  for(var i=0;i<6;i++){
-    var el=document.getElementById('ld'+i);
-    if(el){el.classList.toggle('filled',i<lkInput.length);el.classList.remove('error');}
-  }
-}
-
-function lkVerify(){
-  var encoded = btoa(lkInput);
-  if(encoded===LK_PWD){
-    lkUnlock();
-  } else {
-    for(var i=0;i<6;i++){var el=document.getElementById('ld'+i);if(el){el.classList.remove('filled');el.classList.add('error');}}
-    document.getElementById('lock-err').textContent='비밀번호가 틀렸습니다';
-    setTimeout(function(){lkInput='';lkRender();document.getElementById('lock-err').textContent='';},800);
-  }
-}
-
-function lkUnlock(){
-  lkUnlocked=true;
-  sessionStorage.setItem('kstat_auth','1');
-  var ls=document.getElementById('lock-screen');
-  if(ls){ls.style.opacity='0';ls.style.transition='opacity .3s';setTimeout(function(){ls.classList.add('hidden');},300);}
-}
-
-// 키보드 지원
-document.addEventListener('keydown',function(e){
-  if(lkUnlocked)return;
-  if(e.key>='0'&&e.key<='9')lkPress(e.key);
-  else if(e.key==='Backspace')lkDel();
-  else if(e.key==='Escape')lkClear();
-});
-
-
-initAuth();
-</script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div id="lock-screen">
@@ -758,6 +552,129 @@ initAuth();
   </div>
 </div>
 <script>
+/* 세션 체크 */
+(function(){
+  if(sessionStorage.getItem('kstat_auth')==='1'){
+    var ls=document.getElementById('lock-screen');
+    if(ls)ls.classList.add('hidden');
+    loadData();
+  }
+  if(typeof checkMobile==='function')checkMobile();
+})();
+
+/* ═══ MOBILE SIDEBAR ═══ */
+function toggleSB(){
+  var sb=document.getElementById('sidebar');
+  var ov=document.getElementById('sb-overlay');
+  var isOpen=sb.classList.contains('open');
+  if(isOpen){closeSB();}else{sb.classList.add('open');ov.classList.add('on');}
+}
+function closeSB(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sb-overlay').classList.remove('on');
+}
+function isMobile(){return window.innerWidth<=768;}
+
+/* 뷰 전환 시 모바일은 사이드바 닫기 */
+var _origSW=SW;
+function SW(v){_origSW(v);if(isMobile())closeSB();}
+
+/* 프로젝트 선택 시 모바일은 사이드바 닫기 */
+var _origTP=TP;
+function TP(id){_origTP(id);if(isMobile())closeSB();}
+
+/* 화면 크기에 따라 햄버거 표시/숨김 */
+function checkMobile(){
+  var hb=document.getElementById('hamburger');
+  if(!hb)return;
+  if(window.innerWidth<=768){
+    hb.style.display='flex';
+  } else {
+    hb.style.display='none';
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sb-overlay').classList.remove('on');
+  }
+}
+window.addEventListener('resize',checkMobile);
+/* 터치 스와이프로 사이드바 열기 */
+(function(){
+  var sx=null;
+  document.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;},{passive:true});
+  document.addEventListener('touchend',function(e){
+    if(sx===null)return;
+    var dx=e.changedTouches[0].clientX-sx;
+    if(sx<30&&dx>60){toggleSB();}
+    else if(dx<-60&&document.getElementById('sidebar').classList.contains('open')){closeSB();}
+    sx=null;
+  },{passive:true});
+})();
+
+
+/* ═══ LOCK SCREEN ═══ */
+var LK_PWD = 'MjAxNzAy';
+var lkInput = '';
+var lkUnlocked = false;
+
+function lkCheck(){
+  if(lkUnlocked) return;
+  // 세션 내 인증 유지
+  if(sessionStorage.getItem('kstat_auth')==='1'){lkUnlock();return;}
+  document.getElementById('lock-screen').classList.remove('hidden');
+}
+
+function lkPress(d){
+  if(lkInput.length>=6) return;
+  lkInput+=d;
+  lkRender();
+  if(lkInput.length===6) setTimeout(lkVerify,120);
+}
+
+function lkDel(){
+  lkInput=lkInput.slice(0,-1);
+  lkRender();
+  document.getElementById('lock-err').textContent='';
+}
+
+function lkClear(){
+  lkInput='';
+  lkRender();
+  document.getElementById('lock-err').textContent='';
+}
+
+function lkRender(){
+  for(var i=0;i<6;i++){
+    var el=document.getElementById('ld'+i);
+    if(el){el.classList.toggle('filled',i<lkInput.length);el.classList.remove('error');}
+  }
+}
+
+function lkVerify(){
+  var encoded = btoa(lkInput);
+  if(encoded===LK_PWD){
+    lkUnlock();
+  } else {
+    for(var i=0;i<6;i++){var el=document.getElementById('ld'+i);if(el){el.classList.remove('filled');el.classList.add('error');}}
+    document.getElementById('lock-err').textContent='비밀번호가 틀렸습니다';
+    setTimeout(function(){lkInput='';lkRender();document.getElementById('lock-err').textContent='';},800);
+  }
+}
+
+function lkUnlock(){
+  lkUnlocked=true;
+  sessionStorage.setItem('kstat_auth','1');
+  var ls=document.getElementById('lock-screen');
+  if(ls){ls.style.opacity='0';ls.style.transition='opacity .3s';setTimeout(function(){ls.classList.add('hidden');},300);}
+  loadData();
+}
+
+// 키보드 지원
+document.addEventListener('keydown',function(e){
+  if(lkUnlocked)return;
+  if(e.key>='0'&&e.key<='9')lkPress(e.key);
+  else if(e.key==='Backspace')lkDel();
+  else if(e.key==='Escape')lkClear();
+});
+
 var COLS=['#3b9eff','#00d4aa','#a78bfa','#f59e0b','#fb7185','#34d399','#f97316','#e879f9'];
 var TSTAT=[{v:'예정',c:'#94a3b8'},{v:'진행중',c:'#3b9eff'},{v:'완료',c:'#00d4aa'},{v:'보류',c:'#f59e0b'}];
 var STAGES=['조사 설계','설문 개발','조사표 확정','데이터 수집','데이터 처리','통계 분석','보고서 작성','중간 보고','검토 수정','최종 보고','납품 준비','납품 완료','회의','내부 검토','기타'];
