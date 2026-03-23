@@ -557,7 +557,7 @@ window.addEventListener('resize',checkMobile);
 
 
 /* ═══ LOCK SCREEN ═══ */
-var LK_PWD = 'MjAxNzAy';
+var LK_HASH = 'd0e21b2c42ecc09482517565794d63bf9a57dbb93596c91f9f198c1abbbfe103';
 var lkInput = '';
 var lkUnlocked = false;
 
@@ -589,19 +589,22 @@ function lkRender(){
 }
 
 function lkVerify(){
-  var encoded = btoa(lkInput);
-  if(encoded===LK_PWD){
-    lkUnlock();
-  } else {
-    for(var i=0;i<6;i++){var el=document.getElementById('ld'+i);if(el){el.classList.remove('filled');el.classList.add('error');}}
-    document.getElementById('lock-err').textContent='비밀번호가 틀렸습니다';
-    setTimeout(function(){lkInput='';lkRender();document.getElementById('lock-err').textContent='';},800);
-  }
+  crypto.subtle.digest('SHA-256', new TextEncoder().encode(lkInput))
+  .then(function(buf){
+    var hex=Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+    if(hex===LK_HASH){
+      lkUnlock();
+    } else {
+      for(var i=0;i<6;i++){var el=document.getElementById('lk-d'+i);if(el){el.classList.remove('filled');el.classList.add('error');}}
+      var e=document.getElementById('lock-err');if(e)e.textContent='비밀번호가 틀렸습니다';
+      setTimeout(function(){lkInput='';lkRender();var e2=document.getElementById('lock-err');if(e2)e2.textContent='';},800);
+    }
+  });
 }
 
 function lkUnlock(){
   lkUnlocked=true;
-  sessionStorage.setItem('kstat_auth','1');
+  sessionStorage.setItem('kstat_auth',Date.now().toString());
   var ls=document.getElementById('lock-screen');
   if(ls){ls.style.opacity='0';ls.style.transition='opacity .3s';setTimeout(function(){ls.style.display='none';},350);}
   loadData();
@@ -1489,7 +1492,7 @@ function addGmTask(sg, idx, mp){
 
 /* 세션 유지 체크 */
 (function(){
-  if(sessionStorage.getItem('kstat_auth')==='1'){
+  var _sa=sessionStorage.getItem('kstat_auth');if(_sa&&(Date.now()-parseInt(_sa))<86400000){
     var ls=document.getElementById('lock-screen');
     if(ls)ls.style.display='none';
     loadData();
