@@ -340,81 +340,40 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-<div id="lock-screen">
-  <div class="lk-box">
-    <div class="lk-logo">KSTAT</div>
-    <div class="lk-sub">PROJECT MANAGER</div>
-    <div class="lk-dots" id="lk-dots">
-      <div class="lk-dot" id="lk-d0"></div>
-      <div class="lk-dot" id="lk-d1"></div>
-      <div class="lk-dot" id="lk-d2"></div>
-      <div class="lk-dot" id="lk-d3"></div>
-      <div class="lk-dot" id="lk-d4"></div>
-      <div class="lk-dot" id="lk-d5"></div>
-    </div>
-    <div id="lk-hint" style="font-size:11px;color:#475569;margin-bottom:20px">비밀번호를 입력하세요</div>
-    <div id="lock-err" style="font-size:11px;color:#ff6b6b;height:16px;margin-bottom:8px"></div>
-    <div class="lk-pad">
-      <button class="lk-btn" onclick="lkPress('1')">1</button>
-      <button class="lk-btn" onclick="lkPress('2')">2</button>
-      <button class="lk-btn" onclick="lkPress('3')">3</button>
-      <button class="lk-btn" onclick="lkPress('4')">4</button>
-      <button class="lk-btn" onclick="lkPress('5')">5</button>
-      <button class="lk-btn" onclick="lkPress('6')">6</button>
-      <button class="lk-btn" onclick="lkPress('7')">7</button>
-      <button class="lk-btn" onclick="lkPress('8')">8</button>
-      <button class="lk-btn" onclick="lkPress('9')">9</button>
-      <button class="lk-del" onclick="lkDel()">&#9003;</button>
-      <button class="lk-btn" onclick="lkPress('0')">0</button>
-      <button class="lk-btn" onclick="lkCheck()" style="background:rgba(59,158,255,0.15);border-color:rgba(59,158,255,0.4);color:#3b9eff;font-size:18px">&#10003;</button>
-    </div>
-    <div class="lk-err" id="lk-err"></div>
+<div id="lock-screen" style="position:fixed;inset:0;background:#0a0e17;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
+<div style="background:#111827;border:1px solid rgba(59,158,255,0.25);border-top:3px solid #3b9eff;border-radius:20px;padding:36px 28px;width:100%;max-width:320px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+  <div style="font-size:13px;font-weight:700;color:#3b9eff;letter-spacing:3px;margin-bottom:3px">KSTAT</div>
+  <div style="font-size:9px;color:#475569;letter-spacing:1px;margin-bottom:28px">PROJECT MANAGER</div>
+  <div style="display:flex;justify-content:center;gap:12px;margin-bottom:24px">
+    <div id="lk-d0" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
+    <div id="lk-d1" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
+    <div id="lk-d2" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
+    <div id="lk-d3" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
+    <div id="lk-d4" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
+    <div id="lk-d5" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
+  </div>
+  <div id="lock-err" style="font-size:11px;color:#ff6b6b;height:16px;margin-bottom:10px"></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+    <button onclick="lkPress('1')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">1</button>
+    <button onclick="lkPress('2')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">2</button>
+    <button onclick="lkPress('3')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">3</button>
+    <button onclick="lkPress('4')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">4</button>
+    <button onclick="lkPress('5')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">5</button>
+    <button onclick="lkPress('6')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">6</button>
+    <button onclick="lkPress('7')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">7</button>
+    <button onclick="lkPress('8')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">8</button>
+    <button onclick="lkPress('9')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">9</button>
+    <button onclick="lkDel()" style="height:54px;background:transparent;border:1px solid rgba(255,255,255,0.05);border-radius:12px;color:#94a3b8;font-size:16px;cursor:pointer;font-family:inherit">⌫</button>
+    <button onclick="lkPress('0')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">0</button>
+    <div></div>
   </div>
 </div>
+</div>
+<body>
 
-<div id="lock-screen" style="position:fixed;inset:0;background:#0a0e17;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px">
-  <div style="text-align:center;margin-bottom:8px">
-    <div style="font-size:13px;font-weight:700;color:#3b9eff;letter-spacing:3px;margin-bottom:6px">KSTAT</div>
-    <div style="font-size:11px;color:#64748b;letter-spacing:1px">PROJECT MANAGER</div>
-  </div>
-  <div style="width:100%;max-width:320px">
-    <div style="font-size:12px;color:#94a3b8;margin-bottom:8px;text-align:center">비밀번호를 입력하세요</div>
-    <input id="lock-input" type="password" placeholder="비밀번호"
-      style="width:100%;background:#1a2235;border:1px solid rgba(255,255,255,0.15);color:#e2e8f0;padding:13px 16px;border-radius:10px;font-size:15px;outline:none;box-sizing:border-box;text-align:center;letter-spacing:2px"
-      onkeydown="if(event.key==='Enter')checkPW()"/>
-    <div id="lock-err" style="font-size:11px;color:#ff6b6b;text-align:center;margin-top:8px;display:none">비밀번호가 틀렸습니다</div>
-    <button onclick="checkPW()" style="width:100%;margin-top:12px;padding:13px;background:rgba(59,158,255,0.15);color:#3b9eff;border:1px solid rgba(59,158,255,0.4);border-radius:10px;cursor:pointer;font-size:14px;font-weight:500;font-family:inherit">입력</button>
-  </div>
-</div>
-<div id="lock-screen">
-  <div class="lock-box">
-    <div class="lock-logo">KSTAT</div>
-    <div class="lock-sub">PROJECT MANAGER</div>
-    <div class="lock-dots" id="lock-dots">
-      <div class="lock-dot" id="ld0"></div>
-      <div class="lock-dot" id="ld1"></div>
-      <div class="lock-dot" id="ld2"></div>
-      <div class="lock-dot" id="ld3"></div>
-      <div class="lock-dot" id="ld4"></div>
-      <div class="lock-dot" id="ld5"></div>
-    </div>
-    <div class="lock-pad">
-      <button class="lock-key" onclick="lkPress('1')">1</button>
-      <button class="lock-key" onclick="lkPress('2')">2</button>
-      <button class="lock-key" onclick="lkPress('3')">3</button>
-      <button class="lock-key" onclick="lkPress('4')">4</button>
-      <button class="lock-key" onclick="lkPress('5')">5</button>
-      <button class="lock-key" onclick="lkPress('6')">6</button>
-      <button class="lock-key" onclick="lkPress('7')">7</button>
-      <button class="lock-key" onclick="lkPress('8')">8</button>
-      <button class="lock-key" onclick="lkPress('9')">9</button>
-      <button class="lock-key" onclick="lkClear()">C</button>
-      <button class="lock-key" onclick="lkPress('0')">0</button>
-      <button class="lock-key del" onclick="lkDel()">&#9003;</button>
-    </div>
-    <div class="lock-err" id="lock-err"></div>
-  </div>
-</div>
+
+
+
 <div id="app-loading" style="position:fixed;inset:0;background:#0a0e17;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
   <div style="font-size:12px;font-weight:700;color:#3b9eff;letter-spacing:3px">KSTAT</div>
   <div style="font-size:11px;color:#64748b">데이터 불러오는 중...</div>
@@ -553,15 +512,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
   </div>
 </div>
 <script>
-/* 세션 체크 */
-(function(){
-  if(sessionStorage.getItem('kstat_auth')==='1'){
-    var ls=document.getElementById('lock-screen');
-    if(ls)ls.classList.add('hidden');
-    loadData();
-  }
-  if(typeof checkMobile==='function')checkMobile();
-})();
+
 
 /* ═══ MOBILE SIDEBAR ═══ */
 function toggleSB(){
@@ -576,13 +527,7 @@ function closeSB(){
 }
 function isMobile(){return window.innerWidth<=768;}
 
-/* 뷰 전환 시 모바일은 사이드바 닫기 */
-var _origSW=SW;
-function SW(v){_origSW(v);if(isMobile())closeSB();}
-
-/* 프로젝트 선택 시 모바일은 사이드바 닫기 */
-var _origTP=TP;
-function TP(id){_origTP(id);if(isMobile())closeSB();}
+/* 모바일: 메뉴 전환 시 사이드바 닫기 - SW/TP 함수 안에서 직접 처리 */
 
 /* 화면 크기에 따라 햄버거 표시/숨김 */
 function checkMobile(){
@@ -616,12 +561,6 @@ var LK_PWD = 'MjAxNzAy';
 var lkInput = '';
 var lkUnlocked = false;
 
-function lkCheck(){
-  if(lkUnlocked) return;
-  // 세션 내 인증 유지
-  if(sessionStorage.getItem('kstat_auth')==='1'){lkUnlock();return;}
-  document.getElementById('lock-screen').classList.remove('hidden');
-}
 
 function lkPress(d){
   if(lkInput.length>=6) return;
@@ -644,7 +583,7 @@ function lkClear(){
 
 function lkRender(){
   for(var i=0;i<6;i++){
-    var el=document.getElementById('lk-d'+i);
+    var el=document.getElementById('ld'+i);
     if(el){el.classList.toggle('filled',i<lkInput.length);el.classList.remove('error');}
   }
 }
@@ -654,7 +593,7 @@ function lkVerify(){
   if(encoded===LK_PWD){
     lkUnlock();
   } else {
-    for(var i=0;i<6;i++){var el=document.getElementById('lk-d'+i);if(el){el.classList.remove('filled');el.classList.add('error');}}
+    for(var i=0;i<6;i++){var el=document.getElementById('ld'+i);if(el){el.classList.remove('filled');el.classList.add('error');}}
     document.getElementById('lock-err').textContent='비밀번호가 틀렸습니다';
     setTimeout(function(){lkInput='';lkRender();document.getElementById('lock-err').textContent='';},800);
   }
@@ -664,7 +603,7 @@ function lkUnlock(){
   lkUnlocked=true;
   sessionStorage.setItem('kstat_auth','1');
   var ls=document.getElementById('lock-screen');
-  if(ls){ls.style.opacity='0';ls.style.transition='opacity .3s';setTimeout(function(){ls.classList.add('hidden');},300);}
+  if(ls){ls.style.opacity='0';ls.style.transition='opacity .3s';setTimeout(function(){ls.style.display='none';},350);}
   loadData();
 }
 
@@ -806,7 +745,7 @@ function RSB(){
   }
   el.innerHTML=html;
 }
-function TP(id){selProj=selProj===id?null:id;RA();}
+function TP(id){selProj=selProj===id?null:id;RA();if(typeof closeSB==='function'&&typeof isMobile==='function'&&isMobile())closeSB();}
 
 function RTB(){
   var titles={calendar:'캘린더',daily:'데일리 로그',dashboard:'프로젝트 대시보드'};
@@ -830,6 +769,7 @@ function SW(v){
     document.getElementById('nb-'+ks[i]).classList.toggle('on',ks[i]===v);
   }
   RA();
+  if(typeof closeSB==='function'&&typeof isMobile==='function'&&isMobile())closeSB();
 }
 
 function RC(){
@@ -1546,6 +1486,16 @@ function addGmTask(sg, idx, mp){
   openTM(sg.deadline||null, null, mp?mp.id:null, sg.taskName, sg.stage||'기타', '발신: '+sg.from);
 }
 
+
+/* 세션 유지 체크 */
+(function(){
+  if(sessionStorage.getItem('kstat_auth')==='1'){
+    var ls=document.getElementById('lock-screen');
+    if(ls)ls.style.display='none';
+    loadData();
+  }
+  if(typeof checkMobile==='function')checkMobile();
+})();
 </script>
 
 <!-- SYNC MODAL -->
@@ -1662,5 +1612,6 @@ function addGmTask(sg, idx, mp){
     </div>
   </div>
 </div>
+
 </body>
 </html>
