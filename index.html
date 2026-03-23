@@ -353,18 +353,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
       <div class="lk-dot" id="lk-d5"></div>
     </div>
     <div id="lk-hint" style="font-size:11px;color:#475569;margin-bottom:20px">비밀번호를 입력하세요</div>
+    <div id="lock-err" style="font-size:11px;color:#ff6b6b;height:16px;margin-bottom:8px"></div>
     <div class="lk-pad">
-      <button class="lk-btn" onclick="lkInput('1')">1</button>
-      <button class="lk-btn" onclick="lkInput('2')">2</button>
-      <button class="lk-btn" onclick="lkInput('3')">3</button>
-      <button class="lk-btn" onclick="lkInput('4')">4</button>
-      <button class="lk-btn" onclick="lkInput('5')">5</button>
-      <button class="lk-btn" onclick="lkInput('6')">6</button>
-      <button class="lk-btn" onclick="lkInput('7')">7</button>
-      <button class="lk-btn" onclick="lkInput('8')">8</button>
-      <button class="lk-btn" onclick="lkInput('9')">9</button>
+      <button class="lk-btn" onclick="lkPress('1')">1</button>
+      <button class="lk-btn" onclick="lkPress('2')">2</button>
+      <button class="lk-btn" onclick="lkPress('3')">3</button>
+      <button class="lk-btn" onclick="lkPress('4')">4</button>
+      <button class="lk-btn" onclick="lkPress('5')">5</button>
+      <button class="lk-btn" onclick="lkPress('6')">6</button>
+      <button class="lk-btn" onclick="lkPress('7')">7</button>
+      <button class="lk-btn" onclick="lkPress('8')">8</button>
+      <button class="lk-btn" onclick="lkPress('9')">9</button>
       <button class="lk-del" onclick="lkDel()">&#9003;</button>
-      <button class="lk-btn" onclick="lkInput('0')">0</button>
+      <button class="lk-btn" onclick="lkPress('0')">0</button>
       <button class="lk-btn" onclick="lkCheck()" style="background:rgba(59,158,255,0.15);border-color:rgba(59,158,255,0.4);color:#3b9eff;font-size:18px">&#10003;</button>
     </div>
     <div class="lk-err" id="lk-err"></div>
@@ -643,7 +644,7 @@ function lkClear(){
 
 function lkRender(){
   for(var i=0;i<6;i++){
-    var el=document.getElementById('ld'+i);
+    var el=document.getElementById('lk-d'+i);
     if(el){el.classList.toggle('filled',i<lkInput.length);el.classList.remove('error');}
   }
 }
@@ -653,7 +654,7 @@ function lkVerify(){
   if(encoded===LK_PWD){
     lkUnlock();
   } else {
-    for(var i=0;i<6;i++){var el=document.getElementById('ld'+i);if(el){el.classList.remove('filled');el.classList.add('error');}}
+    for(var i=0;i<6;i++){var el=document.getElementById('lk-d'+i);if(el){el.classList.remove('filled');el.classList.add('error');}}
     document.getElementById('lock-err').textContent='비밀번호가 틀렸습니다';
     setTimeout(function(){lkInput='';lkRender();document.getElementById('lock-err').textContent='';},800);
   }
