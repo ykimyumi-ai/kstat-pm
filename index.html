@@ -1024,6 +1024,7 @@ function getP(id){for(var i=0;i<D.projects.length;i++){if(D.projects[i].id===id)
 function sumH(arr){var s=0;for(var i=0;i<arr.length;i++)s+=parseFloat(arr[i].hours)||0;return s;}
 function getStat(v){for(var i=0;i<TSTAT.length;i++){if(TSTAT[i].v===v)return TSTAT[i];}return TSTAT[0];}
 function getLT(v){for(var i=0;i<LTYPES.length;i++){if(LTYPES[i].v===v)return LTYPES[i];}return LTYPES[0];}
+function stageCol(s){var m={'회의':'#a78bfa','보고':'#f59e0b','납품 준비':'#ff6b6b','검토':'#00d4aa','기타':'#94a3b8'};return m[s]||'#94a3b8';}
 function tdOff(n){var x=new Date();x.setDate(x.getDate()+n);return x;}
 function pillH(status){var s=getStat(status);return '<span class="pill" style="color:'+s.c+';background:'+s.c+'15;border-color:'+s.c+'44">'+status+'</span>';}
 function ddH(deadline){var d=getDays(deadline);if(d===null)return'';var c='#00d4aa',lbl='D-'+d;if(d<0){c='#ff6b6b';lbl='D+'+Math.abs(d);}if(d===0){c='#ff6b6b';lbl='D-DAY';}if(d>0&&d<=3)c='#ff6b6b';if(d>3&&d<=7)c='#f59e0b';return '<span class="dday" style="color:'+c+';background:'+c+'18;border-color:'+c+'44">'+lbl+'</span>';}
