@@ -296,7 +296,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
 
 
 @media (max-width:768px){
-  .tt-hour{min-height:40px !important}
   .tt-block{font-size:10px;padding:3px 6px}
   .tt-block .tb-time{font-size:8px}
   .tt-lbl{width:38px;font-size:8px}
@@ -976,8 +975,8 @@ function RTT(){
   var now=new Date();
   var nowH=now.getHours(),nowM=now.getMinutes();
   if(ds===localDS(now)&&nowH>=TT_START&&nowH<TT_END){
-    var slotH2=Math.floor(TT_H/2);
-    var nowPx=((nowH-TT_START)*60+nowM)/30*slotH2;
+    var nowSlot=tl2.querySelector('[data-hr="'+nowH+'"][data-min="'+(nowM>=30?30:0)+'"]');
+    var nowPx=nowSlot?nowSlot.offsetTop+((nowM%30)/30)*nowSlot.offsetHeight:0;
     var nowLine=document.createElement('div');
     nowLine.className='tt-now';
     nowLine.style.top=Math.round(nowPx)+'px';
@@ -990,18 +989,21 @@ function RTT(){
     var log=scheduled[i];
     var p3=getP(log.projectId);var pc3=p3?p3.color:'#888';var lt2=getLT(log.type);
     var sp=log.startTime.split(':');var sh=parseInt(sp[0]),sm=parseInt(sp[1]||0);
-    var slotH=Math.floor(TT_H/2);  // 각 30분 슬롯 높이(px)
-    var topPx=((sh-TT_START)*60+sm)/30*slotH;
+    // DOM 실제 위치 사용 (CSS override 문제 방지)
+    var startSlot=tl2.querySelector('[data-hr="'+sh+'"][data-min="'+(sm>=30?30:0)+'"]');
+    if(!startSlot)continue;
+    var topPx=startSlot.offsetTop;
+    // 분 단위 오프셋 (슬롯 내 위치)
+    var slotActualH=startSlot.offsetHeight;
+    topPx+=((sm%30)/30)*slotActualH;
+    // 높이 계산
     var dMin=0;
     if(log.endTime){var ep=log.endTime.split(':');var eh=parseInt(ep[0]),em=parseInt(ep[1]||0);dMin=(eh*60+em)-(sh*60+sm);}
     else if(log.hours){dMin=parseFloat(log.hours)*60;}
     else{dMin=60;}
     if(dMin<=0)dMin=60;
-    var heightPx=Math.max(dMin/30*slotH-2, 20);
-    var totalPx=(TT_END-TT_START)*2*slotH;
-    if(topPx<0){heightPx+=topPx;topPx=0;}
-    if(topPx+heightPx>totalPx)heightPx=totalPx-topPx;
-    if(topPx>=totalPx||heightPx<=0)continue;
+    var heightPx=Math.max((dMin/30)*slotActualH-2, 24);
+    if(heightPx<=0)continue;
 
     var blk=document.createElement('div');
     blk.className='tt-block';
@@ -1018,14 +1020,14 @@ function RTT(){
   }
 
   // scroll to current time or first log
-  var slotH3=Math.floor(TT_H/2);
   var scrollTarget=0;
   if(ds===localDS(new Date())&&now.getHours()>=TT_START){
-    scrollTarget=Math.max(0,((now.getHours()-TT_START-1)*60/30)*slotH3);
+    var scrollSlot=tl2.querySelector('[data-hr="'+Math.max(now.getHours()-1,TT_START)+'"][data-min="0"]');
+    scrollTarget=scrollSlot?scrollSlot.offsetTop:0;
   } else if(scheduled.length){
     var sp2=scheduled[0].startTime.split(':');
-    var fh=parseInt(sp2[0])-TT_START-1;
-    scrollTarget=Math.max(0,fh*2*slotH3);
+    var fhSlot=tl2.querySelector('[data-hr="'+Math.max(parseInt(sp2[0])-1,TT_START)+'"][data-min="0"]');
+    scrollTarget=fhSlot?Math.max(0,fhSlot.offsetTop):0;
   }
   setTimeout(function(){tl2.scrollTop=Math.max(0,scrollTarget);},50);
 }
