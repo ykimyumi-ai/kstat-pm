@@ -486,7 +486,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
               <div style="font-size:11px;color:var(--txt3)">타임라인 — 빈 칸 클릭 시 로그 추가</div>
               <div style="font-size:10px;color:var(--txt3)" id="tt-total-h"></div>
             </div>
-            <div class="tt-body" id="tt-timeline" onclick="ttClick(event)"></div>
+            <div class="tt-body" id="tt-timeline" onclick="ttClick(event)" style="position:relative"></div>
           </div>
         </div>
       </div>
@@ -976,10 +976,11 @@ function RTT(){
   var now=new Date();
   var nowH=now.getHours(),nowM=now.getMinutes();
   if(ds===localDS(now)&&nowH>=TT_START&&nowH<TT_END){
-    var pct=((nowH-TT_START)*60+nowM)/((TT_END-TT_START)*60);
+    var slotH2=Math.floor(TT_H/2);
+    var nowPx=((nowH-TT_START)*60+nowM)/30*slotH2;
     var nowLine=document.createElement('div');
     nowLine.className='tt-now';
-    nowLine.style.top=Math.round(pct*100)+'%';
+    nowLine.style.top=Math.round(nowPx)+'px';
     tl2.appendChild(nowLine);
   }
 
@@ -989,21 +990,23 @@ function RTT(){
     var log=scheduled[i];
     var p3=getP(log.projectId);var pc3=p3?p3.color:'#888';var lt2=getLT(log.type);
     var sp=log.startTime.split(':');var sh=parseInt(sp[0]),sm=parseInt(sp[1]||0);
-    var topPct=((sh-TT_START)*60+sm)/((TT_END-TT_START)*60)*100;
+    var slotH=Math.floor(TT_H/2);  // 각 30분 슬롯 높이(px)
+    var topPx=((sh-TT_START)*60+sm)/30*slotH;
     var dMin=0;
     if(log.endTime){var ep=log.endTime.split(':');var eh=parseInt(ep[0]),em=parseInt(ep[1]||0);dMin=(eh*60+em)-(sh*60+sm);}
     else if(log.hours){dMin=parseFloat(log.hours)*60;}
     else{dMin=60;}
     if(dMin<=0)dMin=60;
-    var heightPct=dMin/((TT_END-TT_START)*60)*100;
-    if(topPct<0){heightPct+=topPct;topPct=0;}
-    if(topPct+heightPct>100)heightPct=100-topPct;
-    if(topPct>=100||heightPct<=0)continue;
+    var heightPx=Math.max(dMin/30*slotH-2, 20);
+    var totalPx=(TT_END-TT_START)*2*slotH;
+    if(topPx<0){heightPx+=topPx;topPx=0;}
+    if(topPx+heightPx>totalPx)heightPx=totalPx-topPx;
+    if(topPx>=totalPx||heightPx<=0)continue;
 
     var blk=document.createElement('div');
     blk.className='tt-block';
-    blk.style.top=topPct.toFixed(2)+'%';
-    blk.style.height='calc('+heightPct.toFixed(2)+'% - 2px)';
+    blk.style.top=Math.round(topPx)+'px';
+    blk.style.height=Math.round(heightPx)+'px';
     blk.style.background=pc3+'22';
     blk.style.borderLeftColor=pc3;
     blk.style.color=pc3;
@@ -1015,13 +1018,14 @@ function RTT(){
   }
 
   // scroll to current time or first log
+  var slotH3=Math.floor(TT_H/2);
   var scrollTarget=0;
   if(ds===localDS(new Date())&&now.getHours()>=TT_START){
-    scrollTarget=((now.getHours()-TT_START-1)*60)/((TT_END-TT_START)*60)*tl2.scrollHeight;
+    scrollTarget=Math.max(0,((now.getHours()-TT_START-1)*60/30)*slotH3);
   } else if(scheduled.length){
     var sp2=scheduled[0].startTime.split(':');
     var fh=parseInt(sp2[0])-TT_START-1;
-    scrollTarget=Math.max(0,fh*TT_H);
+    scrollTarget=Math.max(0,fh*2*slotH3);
   }
   setTimeout(function(){tl2.scrollTop=Math.max(0,scrollTarget);},50);
 }
