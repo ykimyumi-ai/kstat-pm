@@ -354,7 +354,300 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
 .cc.drag-over{background:rgba(59,158,255,0.1) !important;outline:2px dashed rgba(59,158,255,0.4)}
 
 </style>
-<script src="https://accounts.google.com/gsi/client" async defer>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div id="lock-screen" style="position:fixed;inset:0;background:#0a0e17;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
+<div style="background:#111827;border:1px solid rgba(59,158,255,0.25);border-top:3px solid #3b9eff;border-radius:20px;padding:36px 28px;width:100%;max-width:320px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+  <div style="font-size:13px;font-weight:700;color:#3b9eff;letter-spacing:3px;margin-bottom:3px">KSTAT</div>
+  <div style="font-size:9px;color:#475569;letter-spacing:1px;margin-bottom:28px">PROJECT MANAGER</div>
+  <div style="display:flex;justify-content:center;gap:12px;margin-bottom:24px">
+    <div id="lk-d0" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
+    <div id="lk-d1" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
+    <div id="lk-d2" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
+    <div id="lk-d3" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
+    <div id="lk-d4" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
+    <div id="lk-d5" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
+  </div>
+  <div id="lock-err" style="font-size:11px;color:#ff6b6b;height:16px;margin-bottom:10px"></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+    <button onclick="lkPress('1')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">1</button>
+    <button onclick="lkPress('2')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">2</button>
+    <button onclick="lkPress('3')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">3</button>
+    <button onclick="lkPress('4')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">4</button>
+    <button onclick="lkPress('5')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">5</button>
+    <button onclick="lkPress('6')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">6</button>
+    <button onclick="lkPress('7')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">7</button>
+    <button onclick="lkPress('8')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">8</button>
+    <button onclick="lkPress('9')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">9</button>
+    <button onclick="lkDel()" style="height:54px;background:transparent;border:1px solid rgba(255,255,255,0.05);border-radius:12px;color:#94a3b8;font-size:16px;cursor:pointer;font-family:inherit">⌫</button>
+    <button onclick="lkPress('0')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">0</button>
+    <div></div>
+  </div>
+</div>
+</div>
+<body>
+
+
+
+
+<div id="app-loading" style="position:fixed;inset:0;background:#0a0e17;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <div style="font-size:12px;font-weight:700;color:#3b9eff;letter-spacing:3px">KSTAT</div>
+  <div style="font-size:11px;color:#64748b">데이터 불러오는 중...</div>
+  <div style="display:flex;gap:5px">
+    <span style="width:7px;height:7px;border-radius:50%;background:#3b9eff;display:inline-block;opacity:0.35"></span>
+    <span style="width:7px;height:7px;border-radius:50%;background:#3b9eff;display:inline-block;opacity:0.65"></span>
+    <span style="width:7px;height:7px;border-radius:50%;background:#3b9eff;display:inline-block;opacity:1"></span>
+  </div>
+</div>
+<div id="sb-overlay" onclick="closeSB()"></div>
+<div id="app">
+  <div id="sidebar">
+    <div class="brand">
+      <div class="brand-n">KSTAT</div>
+      <div class="brand-s">PROJECT MANAGER</div>
+    </div>
+    <div class="nav">
+      <button class="nb on" id="nb-calendar" onclick="SW('calendar')">&#9673; 캘린더</button>
+      <button class="nb" id="nb-daily" onclick="SW('daily')">&#10000; 데일리 로그</button>
+      <button class="nb" id="nb-dashboard" onclick="SW('dashboard')">&#9636; 대시보드</button>
+    </div>
+    <div class="ps sc">
+      <div class="pl">프로젝트</div>
+      <div id="proj-list"></div>
+      <button class="apb" onclick="openPM()">+ 프로젝트 추가</button>
+    </div>
+    <div style="padding:8px 6px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:5px">
+      <button class="apb" style="background:rgba(234,67,53,0.08);border:0.5px solid rgba(234,67,53,0.25);color:#ea4335;font-weight:500" onclick="openGmail()">&#9993; Gmail 일정 가져오기</button>
+      <button class="apb" style="background:rgba(0,212,170,0.08);border:0.5px solid rgba(0,212,170,0.25);color:#00d4aa;font-weight:500" onclick="exportExcel()">&#8595; 엑셀 내보내기</button>
+      <button class="apb" style="background:rgba(59,158,255,0.08);border:0.5px solid rgba(59,158,255,0.25);color:#3b9eff;font-weight:500" onclick="openSync()">&#8644; 데이터 동기화</button>
+    </div>
+    <div class="sf"><div class="sd" id="sdate"></div></div>
+  </div>
+  <div id="main">
+    <div id="topbar">
+      <button id="hamburger" onclick="toggleSB()" style="display:none;background:transparent;border:none;color:var(--txt2);cursor:pointer;padding:4px 8px;margin-right:8px;font-size:20px;line-height:1;align-items:center;justify-content:center;min-width:32px">&#9776;</button>
+      <div>
+        <div class="tt" id="ttl">캘린더</div>
+        <div class="ts" id="tsub"></div>
+      </div>
+      <div class="tr" id="tact"></div>
+    </div>
+    <div id="content">
+      <div class="vw on sc" id="vw-calendar">
+        <div class="tc">
+          <div class="cm">
+            <div class="cn2">
+              <span class="cnl" id="cal-title"></span>
+              <div class="cnb">
+                <button class="btn bg" onclick="CP()">&#8249;</button>
+                <button class="btn bg" onclick="CN()">&#8250;</button>
+                <button class="btn bg" onclick="CT()">오늘</button>
+              </div>
+            </div>
+            <div class="cw">
+              <div class="ch">
+                <div class="cdh" style="color:#ff6b6b">일</div>
+                <div class="cdh">월</div><div class="cdh">화</div>
+                <div class="cdh">수</div><div class="cdh">목</div>
+                <div class="cdh">금</div>
+                <div class="cdh" style="color:#3b9eff">토</div>
+              </div>
+              <div class="cg" id="cal-grid"></div>
+            </div>
+            <div id="sdp" style="display:none" class="sdp">
+              <div class="sdpt">
+                <span id="sdp-label"></span>
+                <div style="display:flex;gap:5px">
+                  <button class="btn" style="background:rgba(0,212,170,0.1);color:#00d4aa;border-color:rgba(0,212,170,0.3)" onclick="openLM(selDate?localDS(selDate):todayStr(),null)">+ 로그</button>
+                  <button class="btn bp" onclick="openTM(null,null,null)">+ 업무</button>
+                </div>
+              </div>
+              <div id="sdp-tasks"></div>
+            </div>
+          </div>
+          <div class="up">
+            <div class="upt">다가오는 업무</div>
+            <div id="up-list"></div>
+          </div>
+        </div>
+      </div>
+      <div class="vw sc" id="vw-daily">
+        <!-- 주간 스트립 -->
+        <div class="ws" style="flex-shrink:0;margin-bottom:0;border-radius:var(--r) var(--r) 0 0">
+          <div class="wh">
+            <button class="btn bg" style="padding:3px 9px" onclick="wkOff--;RWS()">&#8249;</button>
+            <span class="wr" id="wk-range"></span>
+            <div style="display:flex;gap:4px">
+              <button class="btn bp" style="padding:3px 9px;font-size:10px" onclick="wkOff=0;RWS()">이번주</button>
+              <button class="btn bg" style="padding:3px 9px" onclick="wkOff++;RWS()">&#8250;</button>
+            </div>
+          </div>
+          <div class="ws2-grid" id="wk-grid"></div>
+        </div>
+        <!-- 타임테이블 -->
+        <div class="tt-wrap">
+          <!-- 왼쪽: 업무 목록 -->
+          <div class="tt-left">
+            <div class="tt-head">
+              <div>
+                <div style="font-size:12px;font-weight:500;color:var(--txt1)" id="tt-date-lbl"></div>
+                <div style="font-size:10px;color:var(--txt3);margin-top:1px" id="tt-summary"></div>
+              </div>
+              <button class="btn bp" style="padding:4px 10px;font-size:10px" onclick="openLM(selLD,null)">+ 로그</button>
+            </div>
+            <div class="tt-body sc" id="tt-task-list" style="padding:8px"></div>
+          </div>
+          <!-- 오른쪽: 타임라인 -->
+          <div class="tt-right">
+            <div class="tt-head" style="padding:10px 14px">
+              <div style="font-size:11px;color:var(--txt3)">타임라인 — 빈 칸 클릭 시 로그 추가</div>
+              <div style="font-size:10px;color:var(--txt3)" id="tt-total-h"></div>
+            </div>
+            <div class="tt-body" id="tt-timeline" onclick="ttClick(event)" style="position:relative"></div>
+          </div>
+        </div>
+      </div>
+      <div class="vw sc" id="vw-dashboard">
+        <div class="sg" id="dash-stats"></div>
+        <div class="wbs">
+          <div class="wbt">최근 7일 투입시간</div>
+          <div class="bc" id="dash-bc"></div>
+        </div>
+        <div class="dg" id="dash-cards"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="ov" onclick="if(event.target===this)CM()">
+  <div class="mo" id="mbox" style="border-top:3px solid #3b9eff">
+    <div class="mh">
+      <span class="mt" id="mtit"></span>
+      <button class="mx" onclick="CM()">&#215;</button>
+    </div>
+    <div class="mb" id="mbod"></div>
+    <div class="mf" id="mfot"></div>
+  </div>
+</div>
+
+
+<!-- SYNC MODAL -->
+<div id="sync-ov" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:50px 16px;overflow-y:auto" onclick="if(event.target===this)closeSync()">
+  <div style="background:#111827;border:1px solid rgba(59,158,255,0.4);border-top:3px solid #3b9eff;border-radius:16px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:15px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.07)">
+      <span style="font-size:14px;font-weight:500;color:#e2e8f0">데이터 동기화</span>
+      <button onclick="closeSync()" style="background:transparent;border:none;color:#64748b;font-size:18px;cursor:pointer;padding:0 4px;line-height:1;font-family:inherit">&#215;</button>
+    </div>
+    <div style="padding:16px 18px">
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:13px 15px;margin-bottom:16px;font-size:12px;color:#94a3b8;line-height:1.7">
+        <div style="font-weight:500;color:#e2e8f0;margin-bottom:6px">&#128203; 동기화 방법</div>
+        Claude 앱 → <strong style="color:#3b9eff">내보내기</strong> → JSON 저장<br>
+        이 앱 → <strong style="color:#00d4aa">가져오기</strong> → 같은 JSON 선택<br>
+        <span style="font-size:10px;display:block;margin-top:4px">반대 방향도 동일하게 작동합니다</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <button onclick="exportData()" style="padding:16px 10px;background:rgba(59,158,255,0.1);border:1px solid rgba(59,158,255,0.35);border-radius:10px;color:#3b9eff;cursor:pointer;font-size:12px;font-weight:500;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px">
+          <span style="font-size:24px">&#11015;</span>
+          <span>내보내기</span>
+          <span style="font-size:10px;color:#64748b;font-weight:400">JSON 파일 다운로드</span>
+        </button>
+        <button onclick="document.getElementById('import-fi').click()" style="padding:16px 10px;background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.35);border-radius:10px;color:#00d4aa;cursor:pointer;font-size:12px;font-weight:500;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px">
+          <span style="font-size:24px">&#11014;</span>
+          <span>가져오기</span>
+          <span style="font-size:10px;color:#64748b;font-weight:400">JSON 파일 선택</span>
+        </button>
+      </div>
+      <input id="import-fi" type="file" accept=".json" onchange="importData(event)" style="display:none"/>
+      <div id="sync-msg" style="display:none;padding:9px 13px;border-radius:8px;font-size:12px"></div>
+    </div>
+    <div style="padding:11px 18px;border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:flex-end">
+      <button onclick="closeSync()" style="padding:8px 18px;background:transparent;color:#94a3b8;border:1px solid rgba(255,255,255,0.12);border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- GMAIL MODAL -->
+<div id="gmail-ov" style="position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto" onclick="if(event.target===this)closeGmail()">
+  <div style="background:#111827;border:1px solid rgba(234,67,53,0.4);border-top:3px solid #ea4335;border-radius:16px;width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:15px 20px 11px;border-bottom:1px solid rgba(255,255,255,0.07)">
+      <div>
+        <div style="font-size:14px;font-weight:500;color:#e2e8f0">&#9993; Gmail 일정 가져오기</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px">Google 계정 직접 연동 &#183; Claude 불필요</div>
+      </div>
+      <button onclick="closeGmail()" style="background:transparent;border:none;color:#64748b;font-size:18px;cursor:pointer;padding:0 4px;line-height:1;font-family:inherit">&#215;</button>
+    </div>
+    <div style="padding:18px 20px">
+
+      <!-- 최초 설정 -->
+      <div id="gmail-setup" style="display:none">
+        <div style="background:rgba(234,67,53,0.07);border:1px solid rgba(234,67,53,0.2);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:12px;color:#94a3b8;line-height:1.9">
+          <div style="font-weight:600;color:#e2e8f0;margin-bottom:10px">&#9881; 최초 1회 설정 (약 10분)</div>
+          <div><span style="color:#ea4335;font-weight:700">1.</span> <a href="https://console.cloud.google.com" target="_blank" style="color:#3b9eff;text-decoration:none">console.cloud.google.com</a> 접속 후 새 프로젝트 생성</div>
+          <div><span style="color:#ea4335;font-weight:700">2.</span> API 및 서비스 &#8594; 라이브러리 &#8594; Gmail API &#8594; 사용 설정</div>
+          <div><span style="color:#ea4335;font-weight:700">3.</span> 사용자 인증 정보 &#8594; OAuth 클라이언트 ID 만들기 &#8594; 웹 애플리케이션</div>
+          <div><span style="color:#ea4335;font-weight:700">4.</span> 승인된 자바스크립트 원본에 <code style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px">http://localhost</code> 추가</div>
+          <div><span style="color:#ea4335;font-weight:700">5.</span> OAuth 동의 화면 &#8594; 테스트 사용자에 본인 Gmail 추가</div>
+          <div><span style="color:#ea4335;font-weight:700">6.</span> 생성된 클라이언트 ID 복사 후 아래 입력</div>
+          <div style="margin-top:8px;font-size:10px;color:#475569">&#10003; 설정값은 이 브라우저에 저장 &#8212; 다음부터는 바로 사용 가능</div>
+        </div>
+        <label style="font-size:11px;color:#94a3b8;display:block;margin-bottom:5px">Google OAuth 클라이언트 ID</label>
+        <input id="gmail-cid-input" placeholder="000000000000-xxxx.apps.googleusercontent.com" style="width:100%;background:#1a2235;border:1px solid rgba(255,255,255,0.15);color:#e2e8f0;padding:9px 12px;border-radius:8px;font-size:12px;outline:none;box-sizing:border-box;margin-bottom:10px"/>
+        <button onclick="gmailSaveCid()" style="width:100%;padding:10px;background:rgba(234,67,53,0.15);color:#ea4335;border:1px solid rgba(234,67,53,0.35);border-radius:9px;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit">저장하고 연결하기</button>
+      </div>
+
+      <!-- 로그인 대기 -->
+      <div id="gmail-idle" style="display:none;text-align:center;padding:22px 0">
+        <div style="font-size:32px;margin-bottom:12px">&#9993;</div>
+        <div style="font-size:13px;color:#94a3b8;margin-bottom:20px;line-height:1.7">Google 계정으로 로그인하여<br>최근 이메일에서 업무 일정을 자동으로 추출합니다</div>
+        <button onclick="startGmail()" style="padding:11px 28px;background:rgba(234,67,53,0.15);color:#ea4335;border:1px solid rgba(234,67,53,0.4);border-radius:9px;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit">Google 로그인 후 분석</button>
+        <div style="margin-top:12px">
+          <button onclick="gmailResetCid()" style="background:transparent;border:none;color:#475569;cursor:pointer;font-size:10px;font-family:inherit;text-decoration:underline">클라이언트 ID 재설정</button>
+        </div>
+      </div>
+
+      <!-- 로딩 -->
+      <div id="gmail-loading" style="display:none;text-align:center;padding:30px 0">
+        <div style="font-size:13px;color:#94a3b8;line-height:2.2">Gmail에서 이메일을 불러오는 중...<br>일정 관련 이메일을 분석하고 있습니다</div>
+        <div style="margin-top:14px;display:flex;justify-content:center;gap:6px">
+          <span style="width:7px;height:7px;border-radius:50%;background:#ea4335;display:inline-block;opacity:0.35"></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:#ea4335;display:inline-block;opacity:0.65"></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:#ea4335;display:inline-block;opacity:1"></span>
+        </div>
+      </div>
+
+      <!-- 결과 없음 -->
+      <div id="gmail-empty" style="display:none;text-align:center;padding:22px 0;color:#64748b;font-size:13px">
+        최근 이메일에서 업무 일정 관련 내용을 찾지 못했습니다.
+        <div style="margin-top:10px">
+          <button onclick="startGmail()" style="padding:6px 15px;background:rgba(255,255,255,0.05);color:#94a3b8;border:1px solid rgba(255,255,255,0.12);border-radius:7px;cursor:pointer;font-size:11px;font-family:inherit">다시 분석</button>
+        </div>
+      </div>
+
+      <!-- 오류 -->
+      <div id="gmail-error" style="display:none;padding:13px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.3);border-radius:9px">
+        <div id="gmail-error-msg" style="font-size:12px;color:#ff6b6b;margin-bottom:9px"></div>
+        <button onclick="startGmail()" style="font-size:11px;padding:5px 13px;background:rgba(255,107,107,0.1);color:#ff6b6b;border:1px solid rgba(255,107,107,0.3);border-radius:6px;cursor:pointer;font-family:inherit">다시 시도</button>
+        <button onclick="gmailResetCid()" style="margin-left:8px;font-size:11px;padding:5px 13px;background:transparent;color:#64748b;border:1px solid rgba(255,255,255,0.1);border-radius:6px;cursor:pointer;font-family:inherit">ID 재설정</button>
+      </div>
+
+      <!-- 결과 -->
+      <div id="gmail-results" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px">
+          <div id="gmail-cnt" style="font-size:12px;font-weight:500;color:#e2e8f0"></div>
+          <button onclick="startGmail()" style="font-size:10px;padding:3px 9px;background:transparent;color:#64748b;border:0.5px solid rgba(255,255,255,0.12);border-radius:6px;cursor:pointer;font-family:inherit">&#8635; 재분석</button>
+        </div>
+        <div id="gmail-list"></div>
+      </div>
+    </div>
+    <div style="padding:11px 20px;border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:space-between;align-items:center">
+      <span id="gmail-added-cnt" style="font-size:11px;color:#00d4aa"></span>
+      <button onclick="closeGmail()" style="padding:7px 17px;background:transparent;color:#94a3b8;border:1px solid rgba(255,255,255,0.12);border-radius:7px;cursor:pointer;font-size:12px;font-family:inherit">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
 /* ── 업무 완료 체크 토글 ── */
 function toggleTaskDone(taskId, e){
   if(e){e.stopPropagation();}
@@ -602,183 +895,6 @@ function exportExcel(){
   XLSX.writeFile(wb, 'KSTAT_일정_'+today+'.xlsx');
 }
 
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-</head>
-<body>
-<div id="lock-screen" style="position:fixed;inset:0;background:#0a0e17;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
-<div style="background:#111827;border:1px solid rgba(59,158,255,0.25);border-top:3px solid #3b9eff;border-radius:20px;padding:36px 28px;width:100%;max-width:320px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
-  <div style="font-size:13px;font-weight:700;color:#3b9eff;letter-spacing:3px;margin-bottom:3px">KSTAT</div>
-  <div style="font-size:9px;color:#475569;letter-spacing:1px;margin-bottom:28px">PROJECT MANAGER</div>
-  <div style="display:flex;justify-content:center;gap:12px;margin-bottom:24px">
-    <div id="lk-d0" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
-    <div id="lk-d1" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
-    <div id="lk-d2" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
-    <div id="lk-d3" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
-    <div id="lk-d4" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
-    <div id="lk-d5" style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);transition:all .15s"></div>
-  </div>
-  <div id="lock-err" style="font-size:11px;color:#ff6b6b;height:16px;margin-bottom:10px"></div>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
-    <button onclick="lkPress('1')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">1</button>
-    <button onclick="lkPress('2')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">2</button>
-    <button onclick="lkPress('3')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">3</button>
-    <button onclick="lkPress('4')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">4</button>
-    <button onclick="lkPress('5')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">5</button>
-    <button onclick="lkPress('6')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">6</button>
-    <button onclick="lkPress('7')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">7</button>
-    <button onclick="lkPress('8')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">8</button>
-    <button onclick="lkPress('9')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">9</button>
-    <button onclick="lkDel()" style="height:54px;background:transparent;border:1px solid rgba(255,255,255,0.05);border-radius:12px;color:#94a3b8;font-size:16px;cursor:pointer;font-family:inherit">⌫</button>
-    <button onclick="lkPress('0')" style="height:54px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:20px;cursor:pointer;font-family:inherit;transition:all .1s" ontouchstart="this.style.background='rgba(59,158,255,0.2)'" ontouchend="this.style.background='rgba(255,255,255,0.05)'">0</button>
-    <div></div>
-  </div>
-</div>
-</div>
-<body>
-
-
-
-
-<div id="app-loading" style="position:fixed;inset:0;background:#0a0e17;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
-  <div style="font-size:12px;font-weight:700;color:#3b9eff;letter-spacing:3px">KSTAT</div>
-  <div style="font-size:11px;color:#64748b">데이터 불러오는 중...</div>
-  <div style="display:flex;gap:5px">
-    <span style="width:7px;height:7px;border-radius:50%;background:#3b9eff;display:inline-block;opacity:0.35"></span>
-    <span style="width:7px;height:7px;border-radius:50%;background:#3b9eff;display:inline-block;opacity:0.65"></span>
-    <span style="width:7px;height:7px;border-radius:50%;background:#3b9eff;display:inline-block;opacity:1"></span>
-  </div>
-</div>
-<div id="sb-overlay" onclick="closeSB()"></div>
-<div id="app">
-  <div id="sidebar">
-    <div class="brand">
-      <div class="brand-n">KSTAT</div>
-      <div class="brand-s">PROJECT MANAGER</div>
-    </div>
-    <div class="nav">
-      <button class="nb on" id="nb-calendar" onclick="SW('calendar')">&#9673; 캘린더</button>
-      <button class="nb" id="nb-daily" onclick="SW('daily')">&#10000; 데일리 로그</button>
-      <button class="nb" id="nb-dashboard" onclick="SW('dashboard')">&#9636; 대시보드</button>
-    </div>
-    <div class="ps sc">
-      <div class="pl">프로젝트</div>
-      <div id="proj-list"></div>
-      <button class="apb" onclick="openPM()">+ 프로젝트 추가</button>
-    </div>
-    <div style="padding:8px 6px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:5px">
-      <button class="apb" style="background:rgba(234,67,53,0.08);border:0.5px solid rgba(234,67,53,0.25);color:#ea4335;font-weight:500" onclick="openGmail()">&#9993; Gmail 일정 가져오기</button>
-      <button class="apb" style="background:rgba(0,212,170,0.08);border:0.5px solid rgba(0,212,170,0.25);color:#00d4aa;font-weight:500" onclick="exportExcel()">&#8595; 엑셀 내보내기</button>
-      <button class="apb" style="background:rgba(59,158,255,0.08);border:0.5px solid rgba(59,158,255,0.25);color:#3b9eff;font-weight:500" onclick="openSync()">&#8644; 데이터 동기화</button>
-    </div>
-    <div class="sf"><div class="sd" id="sdate"></div></div>
-  </div>
-  <div id="main">
-    <div id="topbar">
-      <button id="hamburger" onclick="toggleSB()" style="display:none;background:transparent;border:none;color:var(--txt2);cursor:pointer;padding:4px 8px;margin-right:8px;font-size:20px;line-height:1;align-items:center;justify-content:center;min-width:32px">&#9776;</button>
-      <div>
-        <div class="tt" id="ttl">캘린더</div>
-        <div class="ts" id="tsub"></div>
-      </div>
-      <div class="tr" id="tact"></div>
-    </div>
-    <div id="content">
-      <div class="vw on sc" id="vw-calendar">
-        <div class="tc">
-          <div class="cm">
-            <div class="cn2">
-              <span class="cnl" id="cal-title"></span>
-              <div class="cnb">
-                <button class="btn bg" onclick="CP()">&#8249;</button>
-                <button class="btn bg" onclick="CN()">&#8250;</button>
-                <button class="btn bg" onclick="CT()">오늘</button>
-              </div>
-            </div>
-            <div class="cw">
-              <div class="ch">
-                <div class="cdh" style="color:#ff6b6b">일</div>
-                <div class="cdh">월</div><div class="cdh">화</div>
-                <div class="cdh">수</div><div class="cdh">목</div>
-                <div class="cdh">금</div>
-                <div class="cdh" style="color:#3b9eff">토</div>
-              </div>
-              <div class="cg" id="cal-grid"></div>
-            </div>
-            <div id="sdp" style="display:none" class="sdp">
-              <div class="sdpt">
-                <span id="sdp-label"></span>
-                <div style="display:flex;gap:5px">
-                  <button class="btn" style="background:rgba(0,212,170,0.1);color:#00d4aa;border-color:rgba(0,212,170,0.3)" onclick="openLM(selDate?localDS(selDate):todayStr(),null)">+ 로그</button>
-                  <button class="btn bp" onclick="openTM(null,null,null)">+ 업무</button>
-                </div>
-              </div>
-              <div id="sdp-tasks"></div>
-            </div>
-          </div>
-          <div class="up">
-            <div class="upt">다가오는 업무</div>
-            <div id="up-list"></div>
-          </div>
-        </div>
-      </div>
-      <div class="vw sc" id="vw-daily">
-        <!-- 주간 스트립 -->
-        <div class="ws" style="flex-shrink:0;margin-bottom:0;border-radius:var(--r) var(--r) 0 0">
-          <div class="wh">
-            <button class="btn bg" style="padding:3px 9px" onclick="wkOff--;RWS()">&#8249;</button>
-            <span class="wr" id="wk-range"></span>
-            <div style="display:flex;gap:4px">
-              <button class="btn bp" style="padding:3px 9px;font-size:10px" onclick="wkOff=0;RWS()">이번주</button>
-              <button class="btn bg" style="padding:3px 9px" onclick="wkOff++;RWS()">&#8250;</button>
-            </div>
-          </div>
-          <div class="ws2-grid" id="wk-grid"></div>
-        </div>
-        <!-- 타임테이블 -->
-        <div class="tt-wrap">
-          <!-- 왼쪽: 업무 목록 -->
-          <div class="tt-left">
-            <div class="tt-head">
-              <div>
-                <div style="font-size:12px;font-weight:500;color:var(--txt1)" id="tt-date-lbl"></div>
-                <div style="font-size:10px;color:var(--txt3);margin-top:1px" id="tt-summary"></div>
-              </div>
-              <button class="btn bp" style="padding:4px 10px;font-size:10px" onclick="openLM(selLD,null)">+ 로그</button>
-            </div>
-            <div class="tt-body sc" id="tt-task-list" style="padding:8px"></div>
-          </div>
-          <!-- 오른쪽: 타임라인 -->
-          <div class="tt-right">
-            <div class="tt-head" style="padding:10px 14px">
-              <div style="font-size:11px;color:var(--txt3)">타임라인 — 빈 칸 클릭 시 로그 추가</div>
-              <div style="font-size:10px;color:var(--txt3)" id="tt-total-h"></div>
-            </div>
-            <div class="tt-body" id="tt-timeline" onclick="ttClick(event)" style="position:relative"></div>
-          </div>
-        </div>
-      </div>
-      <div class="vw sc" id="vw-dashboard">
-        <div class="sg" id="dash-stats"></div>
-        <div class="wbs">
-          <div class="wbt">최근 7일 투입시간</div>
-          <div class="bc" id="dash-bc"></div>
-        </div>
-        <div class="dg" id="dash-cards"></div>
-      </div>
-    </div>
-  </div>
-</div>
-<div id="ov" onclick="if(event.target===this)CM()">
-  <div class="mo" id="mbox" style="border-top:3px solid #3b9eff">
-    <div class="mh">
-      <span class="mt" id="mtit"></span>
-      <button class="mx" onclick="CM()">&#215;</button>
-    </div>
-    <div class="mb" id="mbod"></div>
-    <div class="mf" id="mfot"></div>
-  </div>
-</div>
-<script>
 
 
 /* ═══ MOBILE SIDEBAR ═══ */
@@ -1784,121 +1900,5 @@ function addGmTask(sg, idx, mp){
   if(typeof checkMobile==='function')checkMobile();
 })();
 </script>
-
-<!-- SYNC MODAL -->
-<div id="sync-ov" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:50px 16px;overflow-y:auto" onclick="if(event.target===this)closeSync()">
-  <div style="background:#111827;border:1px solid rgba(59,158,255,0.4);border-top:3px solid #3b9eff;border-radius:16px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:15px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.07)">
-      <span style="font-size:14px;font-weight:500;color:#e2e8f0">데이터 동기화</span>
-      <button onclick="closeSync()" style="background:transparent;border:none;color:#64748b;font-size:18px;cursor:pointer;padding:0 4px;line-height:1;font-family:inherit">&#215;</button>
-    </div>
-    <div style="padding:16px 18px">
-      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:13px 15px;margin-bottom:16px;font-size:12px;color:#94a3b8;line-height:1.7">
-        <div style="font-weight:500;color:#e2e8f0;margin-bottom:6px">&#128203; 동기화 방법</div>
-        Claude 앱 → <strong style="color:#3b9eff">내보내기</strong> → JSON 저장<br>
-        이 앱 → <strong style="color:#00d4aa">가져오기</strong> → 같은 JSON 선택<br>
-        <span style="font-size:10px;display:block;margin-top:4px">반대 방향도 동일하게 작동합니다</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-        <button onclick="exportData()" style="padding:16px 10px;background:rgba(59,158,255,0.1);border:1px solid rgba(59,158,255,0.35);border-radius:10px;color:#3b9eff;cursor:pointer;font-size:12px;font-weight:500;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px">
-          <span style="font-size:24px">&#11015;</span>
-          <span>내보내기</span>
-          <span style="font-size:10px;color:#64748b;font-weight:400">JSON 파일 다운로드</span>
-        </button>
-        <button onclick="document.getElementById('import-fi').click()" style="padding:16px 10px;background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.35);border-radius:10px;color:#00d4aa;cursor:pointer;font-size:12px;font-weight:500;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px">
-          <span style="font-size:24px">&#11014;</span>
-          <span>가져오기</span>
-          <span style="font-size:10px;color:#64748b;font-weight:400">JSON 파일 선택</span>
-        </button>
-      </div>
-      <input id="import-fi" type="file" accept=".json" onchange="importData(event)" style="display:none"/>
-      <div id="sync-msg" style="display:none;padding:9px 13px;border-radius:8px;font-size:12px"></div>
-    </div>
-    <div style="padding:11px 18px;border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:flex-end">
-      <button onclick="closeSync()" style="padding:8px 18px;background:transparent;color:#94a3b8;border:1px solid rgba(255,255,255,0.12);border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit">닫기</button>
-    </div>
-  </div>
-</div>
-
-<!-- GMAIL MODAL -->
-<div id="gmail-ov" style="position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto" onclick="if(event.target===this)closeGmail()">
-  <div style="background:#111827;border:1px solid rgba(234,67,53,0.4);border-top:3px solid #ea4335;border-radius:16px;width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:15px 20px 11px;border-bottom:1px solid rgba(255,255,255,0.07)">
-      <div>
-        <div style="font-size:14px;font-weight:500;color:#e2e8f0">&#9993; Gmail 일정 가져오기</div>
-        <div style="font-size:11px;color:#64748b;margin-top:2px">Google 계정 직접 연동 &#183; Claude 불필요</div>
-      </div>
-      <button onclick="closeGmail()" style="background:transparent;border:none;color:#64748b;font-size:18px;cursor:pointer;padding:0 4px;line-height:1;font-family:inherit">&#215;</button>
-    </div>
-    <div style="padding:18px 20px">
-
-      <!-- 최초 설정 -->
-      <div id="gmail-setup" style="display:none">
-        <div style="background:rgba(234,67,53,0.07);border:1px solid rgba(234,67,53,0.2);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:12px;color:#94a3b8;line-height:1.9">
-          <div style="font-weight:600;color:#e2e8f0;margin-bottom:10px">&#9881; 최초 1회 설정 (약 10분)</div>
-          <div><span style="color:#ea4335;font-weight:700">1.</span> <a href="https://console.cloud.google.com" target="_blank" style="color:#3b9eff;text-decoration:none">console.cloud.google.com</a> 접속 후 새 프로젝트 생성</div>
-          <div><span style="color:#ea4335;font-weight:700">2.</span> API 및 서비스 &#8594; 라이브러리 &#8594; Gmail API &#8594; 사용 설정</div>
-          <div><span style="color:#ea4335;font-weight:700">3.</span> 사용자 인증 정보 &#8594; OAuth 클라이언트 ID 만들기 &#8594; 웹 애플리케이션</div>
-          <div><span style="color:#ea4335;font-weight:700">4.</span> 승인된 자바스크립트 원본에 <code style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px">http://localhost</code> 추가</div>
-          <div><span style="color:#ea4335;font-weight:700">5.</span> OAuth 동의 화면 &#8594; 테스트 사용자에 본인 Gmail 추가</div>
-          <div><span style="color:#ea4335;font-weight:700">6.</span> 생성된 클라이언트 ID 복사 후 아래 입력</div>
-          <div style="margin-top:8px;font-size:10px;color:#475569">&#10003; 설정값은 이 브라우저에 저장 &#8212; 다음부터는 바로 사용 가능</div>
-        </div>
-        <label style="font-size:11px;color:#94a3b8;display:block;margin-bottom:5px">Google OAuth 클라이언트 ID</label>
-        <input id="gmail-cid-input" placeholder="000000000000-xxxx.apps.googleusercontent.com" style="width:100%;background:#1a2235;border:1px solid rgba(255,255,255,0.15);color:#e2e8f0;padding:9px 12px;border-radius:8px;font-size:12px;outline:none;box-sizing:border-box;margin-bottom:10px"/>
-        <button onclick="gmailSaveCid()" style="width:100%;padding:10px;background:rgba(234,67,53,0.15);color:#ea4335;border:1px solid rgba(234,67,53,0.35);border-radius:9px;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit">저장하고 연결하기</button>
-      </div>
-
-      <!-- 로그인 대기 -->
-      <div id="gmail-idle" style="display:none;text-align:center;padding:22px 0">
-        <div style="font-size:32px;margin-bottom:12px">&#9993;</div>
-        <div style="font-size:13px;color:#94a3b8;margin-bottom:20px;line-height:1.7">Google 계정으로 로그인하여<br>최근 이메일에서 업무 일정을 자동으로 추출합니다</div>
-        <button onclick="startGmail()" style="padding:11px 28px;background:rgba(234,67,53,0.15);color:#ea4335;border:1px solid rgba(234,67,53,0.4);border-radius:9px;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit">Google 로그인 후 분석</button>
-        <div style="margin-top:12px">
-          <button onclick="gmailResetCid()" style="background:transparent;border:none;color:#475569;cursor:pointer;font-size:10px;font-family:inherit;text-decoration:underline">클라이언트 ID 재설정</button>
-        </div>
-      </div>
-
-      <!-- 로딩 -->
-      <div id="gmail-loading" style="display:none;text-align:center;padding:30px 0">
-        <div style="font-size:13px;color:#94a3b8;line-height:2.2">Gmail에서 이메일을 불러오는 중...<br>일정 관련 이메일을 분석하고 있습니다</div>
-        <div style="margin-top:14px;display:flex;justify-content:center;gap:6px">
-          <span style="width:7px;height:7px;border-radius:50%;background:#ea4335;display:inline-block;opacity:0.35"></span>
-          <span style="width:7px;height:7px;border-radius:50%;background:#ea4335;display:inline-block;opacity:0.65"></span>
-          <span style="width:7px;height:7px;border-radius:50%;background:#ea4335;display:inline-block;opacity:1"></span>
-        </div>
-      </div>
-
-      <!-- 결과 없음 -->
-      <div id="gmail-empty" style="display:none;text-align:center;padding:22px 0;color:#64748b;font-size:13px">
-        최근 이메일에서 업무 일정 관련 내용을 찾지 못했습니다.
-        <div style="margin-top:10px">
-          <button onclick="startGmail()" style="padding:6px 15px;background:rgba(255,255,255,0.05);color:#94a3b8;border:1px solid rgba(255,255,255,0.12);border-radius:7px;cursor:pointer;font-size:11px;font-family:inherit">다시 분석</button>
-        </div>
-      </div>
-
-      <!-- 오류 -->
-      <div id="gmail-error" style="display:none;padding:13px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.3);border-radius:9px">
-        <div id="gmail-error-msg" style="font-size:12px;color:#ff6b6b;margin-bottom:9px"></div>
-        <button onclick="startGmail()" style="font-size:11px;padding:5px 13px;background:rgba(255,107,107,0.1);color:#ff6b6b;border:1px solid rgba(255,107,107,0.3);border-radius:6px;cursor:pointer;font-family:inherit">다시 시도</button>
-        <button onclick="gmailResetCid()" style="margin-left:8px;font-size:11px;padding:5px 13px;background:transparent;color:#64748b;border:1px solid rgba(255,255,255,0.1);border-radius:6px;cursor:pointer;font-family:inherit">ID 재설정</button>
-      </div>
-
-      <!-- 결과 -->
-      <div id="gmail-results" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px">
-          <div id="gmail-cnt" style="font-size:12px;font-weight:500;color:#e2e8f0"></div>
-          <button onclick="startGmail()" style="font-size:10px;padding:3px 9px;background:transparent;color:#64748b;border:0.5px solid rgba(255,255,255,0.12);border-radius:6px;cursor:pointer;font-family:inherit">&#8635; 재분석</button>
-        </div>
-        <div id="gmail-list"></div>
-      </div>
-    </div>
-    <div style="padding:11px 20px;border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:space-between;align-items:center">
-      <span id="gmail-added-cnt" style="font-size:11px;color:#00d4aa"></span>
-      <button onclick="closeGmail()" style="padding:7px 17px;background:transparent;color:#94a3b8;border:1px solid rgba(255,255,255,0.12);border-radius:7px;cursor:pointer;font-size:12px;font-family:inherit">닫기</button>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
