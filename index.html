@@ -1649,6 +1649,9 @@ function showSyncMsg(ok,txt){var m=document.getElementById('sync-msg');m.style.d
 var GM_TOKEN = null;
 var GM_SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
 
+var gmSug=[];
+var gmAdded={};
+
 function openGmail(){
   var cid = localStorage.getItem('kstat_gmail_cid') || '';
   document.getElementById('gmail-ov').style.display = 'flex';
