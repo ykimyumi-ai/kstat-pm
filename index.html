@@ -544,6 +544,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
           </div>
         </div>
       </div>
+      <div class="vw sc" id="vw-project">
+        <div id="proj-detail-container"></div>
+      </div>
       <div class="vw sc" id="vw-goals">
         <div id="goals-container"></div>
       </div>
@@ -686,6 +689,147 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
 </div>
 
 <script>
+/* ═══ PROJECT DETAIL ═══ */
+var pdTab = 'todo';   // 'todo' | 'done' | 'log'
+
+function setPDTab(t){ pdTab=t; RProjDetail(); }
+
+function RProjDetail(){
+  var container=document.getElementById('proj-detail-container');
+  if(!container)return;
+  var p=selProj?getP(selProj):null;
+  if(!p){container.innerHTML='<div style="padding:32px;text-align:center;color:var(--txt3)">프로젝트를 선택해주세요</div>';return;}
+
+  var pc=p.color;
+  var allTasks=D.tasks.filter(function(t){return t.projectId===p.id;});
+  var todoTasks=allTasks.filter(function(t){return t.status!=='완료';}).sort(function(a,b){
+    if(!a.deadline&&!b.deadline)return 0;
+    if(!a.deadline)return 1;
+    if(!b.deadline)return -1;
+    return new Date(a.deadline)-new Date(b.deadline);
+  });
+  var doneTasks=allTasks.filter(function(t){return t.status==='완료';}).sort(function(a,b){return new Date(b.deadline||0)-new Date(a.deadline||0);});
+  var logs=D.logs.filter(function(l){return l.projectId===p.id;}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+  var totalH=logs.reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);
+
+  // 진척률
+  var pct=allTasks.length?Math.round(doneTasks.length/allTasks.length*100):0;
+  var urgCnt=todoTasks.filter(function(t){var d=getDays(t.deadline);return d!==null&&d<=7;}).length;
+
+  var h='';
+
+  // 프로젝트 헤더
+  h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:16px;border-left:4px solid '+pc+'">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">';
+  h+='<div>';
+  h+='<div style="font-size:18px;font-weight:500;color:'+pc+'">'+esc(p.name)+'</div>';
+  h+='<div style="font-size:12px;color:var(--txt3);margin-top:2px">'+esc(p.client||'')+'</div>';
+  h+='</div>';
+  h+='<div style="display:flex;gap:6px;align-items:center">';
+  if(urgCnt>0)h+='<span style="padding:3px 10px;border-radius:99px;background:rgba(255,107,107,0.12);color:#ff6b6b;border:1px solid rgba(255,107,107,0.3);font-size:11px;font-weight:500">D-7 '+urgCnt+'건</span>';
+  h+='<button class="btn bg" onclick="openEditProj(\''+p.id+'\')">&#8942; 편집</button>';
+  h+='</div></div>';
+  // 진척 바
+  h+='<div style="margin-top:14px">';
+  h+='<div style="display:flex;justify-content:space-between;margin-bottom:5px">';
+  h+='<span style="font-size:11px;color:var(--txt3)">전체 진척</span>';
+  h+='<span style="font-size:12px;font-weight:500;color:'+pc+';font-variant-numeric:tabular-nums">'+doneTasks.length+'/'+allTasks.length+'건 · '+pct+'%</span>';
+  h+='</div>';
+  h+='<div style="height:6px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden">';
+  h+='<div style="height:100%;width:'+pct+'%;background:'+pc+';border-radius:3px;transition:width .4s"></div></div>';
+  // 통계
+  h+='<div style="display:flex;gap:16px;margin-top:10px">';
+  [
+    {l:'진행중',v:allTasks.filter(function(t){return t.status==='진행중';}).length,c:'#3b9eff'},
+    {l:'예정',v:allTasks.filter(function(t){return t.status==='예정';}).length,c:'#94a3b8'},
+    {l:'완료',v:doneTasks.length,c:'#00d4aa'},
+    {l:'보류',v:allTasks.filter(function(t){return t.status==='보류';}).length,c:'#f59e0b'},
+    {l:'총 투입',v:totalH.toFixed(1)+'h',c:pc}
+  ].forEach(function(s){
+    h+='<div style="text-align:center"><div style="font-size:16px;font-weight:500;color:'+s.c+';font-variant-numeric:tabular-nums">'+s.v+'</div><div style="font-size:9px;color:var(--txt3);margin-top:1px">'+s.l+'</div></div>';
+  });
+  h+='</div></div></div>';
+
+  // 탭
+  h+='<div style="display:flex;gap:6px;margin-bottom:14px">';
+  [
+    {k:'todo',l:'진행 중 업무 ('+todoTasks.length+')'},
+    {k:'done',l:'완료 업무 ('+doneTasks.length+')'},
+    {k:'log', l:'로그 ('+logs.length+')'}
+  ].forEach(function(tab){
+    var on=pdTab===tab.k;
+    h+='<button onclick="setPDTab(\''+tab.k+'\')" style="padding:7px 14px;border-radius:var(--rs);font-size:12px;cursor:pointer;font-weight:'+(on?'500':'400')+';border:1px solid '+(on?pc+'55':'rgba(255,255,255,0.1)')+';background:'+(on?pc+'18':'transparent')+';color:'+(on?pc:'var(--txt3)')+';font-family:inherit">'+tab.l+'</button>';
+  });
+  h+='</div>';
+
+  // 탭 콘텐츠
+  if(pdTab==='todo'){
+    if(!todoTasks.length){
+      h+='<div style="text-align:center;padding:32px;color:var(--txt3);font-size:13px">진행 중인 업무가 없습니다</div>';
+    } else {
+      // 단계별 그룹
+      var byStage={};
+      todoTasks.forEach(function(t){var sg=t.stage||'기타';if(!byStage[sg])byStage[sg]=[];byStage[sg].push(t);});
+      Object.keys(byStage).forEach(function(sg){
+        h+='<div style="font-size:9px;color:var(--txt3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;margin-top:16px">'+esc(sg)+'</div>';
+        byStage[sg].forEach(function(t){h+=renderTaskRow(t,pc);});
+      });
+    }
+  } else if(pdTab==='done'){
+    if(!doneTasks.length){
+      h+='<div style="text-align:center;padding:32px;color:var(--txt3);font-size:13px">완료된 업무가 없습니다</div>';
+    } else {
+      doneTasks.forEach(function(t){h+=renderTaskRow(t,pc);});
+    }
+  } else {
+    if(!logs.length){
+      h+='<div style="text-align:center;padding:32px;color:var(--txt3);font-size:13px">기록된 로그가 없습니다</div>';
+    } else {
+      // 날짜별 그룹
+      var byDate={};
+      logs.forEach(function(l){if(!byDate[l.date])byDate[l.date]=[];byDate[l.date].push(l);});
+      Object.keys(byDate).sort(function(a,b){return new Date(b)-new Date(a);}).forEach(function(dt){
+        var dayLogs=byDate[dt];
+        var dayH=dayLogs.reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);
+        h+='<div style="font-size:10px;color:var(--txt3);margin-top:14px;margin-bottom:6px;display:flex;justify-content:space-between">';
+        h+='<span>'+fmtKo(dt)+'</span>';
+        h+='<span style="font-variant-numeric:tabular-nums;color:'+pc+'">'+dayH.toFixed(1)+'h</span></div>';
+        dayLogs.forEach(function(log){
+          var lt=getLT(log.type);
+          h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;margin-bottom:7px;cursor:pointer;border-left:3px solid '+lt.c+'" onclick="openLM(\''+log.date+'\',\''+log.id+'\')">';
+          h+='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">';
+          h+='<span style="padding:2px 7px;border-radius:99px;background:'+lt.c+'15;color:'+lt.c+';border:0.5px solid '+lt.c+'44;font-size:10px;font-weight:500">'+lt.i+' '+lt.v+'</span>';
+          if(log.startTime)h+='<span style="font-size:10px;color:var(--txt3);font-variant-numeric:tabular-nums">'+log.startTime+(log.endTime?' ~ '+log.endTime:'')+'</span>';
+          if(log.hours>0)h+='<span style="font-size:10px;color:var(--txt3);margin-left:auto;font-variant-numeric:tabular-nums">'+parseFloat(log.hours).toFixed(1)+'h</span>';
+          h+='</div>';
+          h+='<div style="font-size:12px;color:'+pc+';line-height:1.6">'+esc(log.content)+'</div>';
+          h+='</div>';
+        });
+      });
+    }
+  }
+
+  container.innerHTML=h;
+}
+
+function renderTaskRow(t, pc){
+  var s=getStat(t.status);
+  var d=getDays(t.deadline);
+  var urgColor='#00d4aa';
+  if(d!==null&&(d<0||d===0||d<=3))urgColor='#ff6b6b';
+  else if(d!==null&&d<=7)urgColor='#f59e0b';
+  var dlbl=d===null?'':d<0?'D+'+Math.abs(d):d===0?'D-DAY':'D-'+d;
+  var row='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;margin-bottom:7px;cursor:pointer;display:flex;align-items:center;gap:10px" onclick="openTM(null,\''+t.id+'\',null)">';
+  row+='<div style="flex:1;min-width:0">';
+  row+='<div style="font-size:13px;font-weight:500;color:'+pc+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.name)+'</div>';
+  if(t.memo)row+='<div style="font-size:11px;color:var(--txt3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.memo)+'</div>';
+  row+='</div>';
+  row+='<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">';
+  row+=pillH(t.status);
+  if(dlbl)row+='<span style="font-size:10px;color:'+urgColor+';font-weight:600;font-variant-numeric:tabular-nums">'+dlbl+'</span>';
+  row+='</div></div>';
+  return row;
+}
 /* ═══ GOALS ═══ */
 var goalView = 'week';   // 'week' | 'month'
 var goalWeekOff = 0;     // 주 오프셋
@@ -1397,7 +1541,7 @@ setInterval(function(){
 },30000);
 setInterval(function(){document.getElementById('sdate').textContent=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});},60000);
 
-function RA(){RSB();if(curV==='calendar')RC();if(curV==='daily')RD();if(curV==='dashboard')RDASH();if(curV==='goals')RGoals();RTB();if(typeof checkMobile==='function')checkMobile();}
+function RA(){RSB();if(curV==='calendar')RC();if(curV==='daily')RD();if(curV==='dashboard')RDASH();if(curV==='goals')RGoals();if(curV==='project')RProjDetail();RTB();if(typeof checkMobile==='function')checkMobile();}
 
 function RSB(){
   var el=document.getElementById('proj-list');
@@ -1413,16 +1557,24 @@ function RSB(){
     html+='<div class="pi'+(isSel?' sel':'')+'" style="'+pstyle+';display:flex;align-items:flex-start;gap:0">';
     html+='<button style="flex:1;text-align:left;background:transparent;border:none;cursor:pointer;padding:0;font-family:inherit" onclick="TP(\''+p.id+'\')">';
     html+='<div class="pd"><span class="pdot" style="background:'+p.color+'"></span><span class="pname" style="color:'+p.color+'">'+esc(p.name)+'</span></div>';
-    html+='<div class="pbw"><div class="pbb"><div class="pbf" style="width:'+pct+'%;background:'+p.color+'"></div></div><div class="pst">'+dn+'/'+pt.length+'건 완료</div></div></button>';
+    html+='<div class="pbw"><div class="pbb"><div class="pbf" style="width:'+pct+'%;background:'+p.color+'"></div></div><div class="pst" style="display:flex;justify-content:space-between"><span>'+dn+'/'+pt.length+'건 완료</span>'+(isSel?'<span style="font-size:8px;color:'+p.color+'">&#9656; 상세보기</span>':'')+'</div></div></button>';
     html+='<button onclick="openEditProj(\''+p.id+'\')" style="background:transparent;border:none;color:var(--txt3);cursor:pointer;padding:4px 6px;font-size:13px;line-height:1;flex-shrink:0;font-family:inherit" title="편집/삭제">&#8942;</button>';
     html+='</div>';
   }
   el.innerHTML=html;
 }
-function TP(id){selProj=selProj===id?null:id;RA();if(typeof closeSB==='function'&&typeof isMobile==='function'&&isMobile())closeSB();}
+function TP(id){
+  if(selProj===id){
+    // 같은 프로젝트 재클릭 → 선택 해제 후 dashboard
+    selProj=null; SW('dashboard');
+  } else {
+    selProj=id; SW('project');
+  }
+  if(typeof closeSB==='function'&&typeof isMobile==='function'&&isMobile())closeSB();
+}
 
 function RTB(){
-  var titles={calendar:'캘린더',daily:'데일리 로그',dashboard:'프로젝트 대시보드',goals:'목표 관리'};
+  var titles={calendar:'캘린더',daily:'데일리 로그',dashboard:'프로젝트 대시보드',goals:'목표 관리',project:'프로젝트 상세'};
   document.getElementById('ttl').textContent=titles[curV];
   var ap=D.projects.filter(function(p){return p.status==='active';});
   var at=D.tasks.filter(function(t){return ap.some(function(p){return p.id===t.projectId;});});
@@ -1432,15 +1584,18 @@ function RTB(){
   if(curV==='calendar')acts='<button class="btn bp" onclick="openTM(null,null,null)">+ 업무 추가</button>';
   if(curV==='daily')acts='<button class="btn bp" onclick="openLM(selLD,null)">+ 로그 작성</button>';
   if(curV==='dashboard')acts='<button class="btn bp" onclick="openTM(null,null,null)">+ 업무 추가</button>';
+  if(curV==='project'&&selProj)acts='<button class="btn bp" onclick="openTM(null,null,selProj)">+ 업무 추가</button>';
   document.getElementById('tact').innerHTML=acts;
 }
 
 function SW(v){
   curV=v;
-  var ks=['calendar','daily','dashboard','goals'];
+  var ks=['calendar','daily','dashboard','goals','project'];
   for(var i=0;i<ks.length;i++){
-    document.getElementById('vw-'+ks[i]).classList.toggle('on',ks[i]===v);
-    document.getElementById('nb-'+ks[i]).classList.toggle('on',ks[i]===v);
+    var ve=document.getElementById('vw-'+ks[i]);
+    if(ve)ve.classList.toggle('on',ks[i]===v);
+    var ne=document.getElementById('nb-'+ks[i]);
+    if(ne)ne.classList.toggle('on',ks[i]===v);
   }
   RA();
   if(typeof closeSB==='function'&&typeof isMobile==='function'&&isMobile())closeSB();
