@@ -672,7 +672,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
       <!-- 결과 -->
       <div id="gmail-results" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px">
-          <div id="gmail-cnt" style="font-size:12px;font-weight:500;color:#e2e8f0"></div>
+          <div style="margin-bottom:8px"><div id="gmail-toolbar"></div></div><div id="gmail-cnt" style="font-size:11px;color:var(--txt3);margin-bottom:8px"></div>
           <button onclick="startGmail()" style="font-size:10px;padding:3px 9px;background:transparent;color:#64748b;border:0.5px solid rgba(255,255,255,0.12);border-radius:6px;cursor:pointer;font-family:inherit">&#8635; 재분석</button>
         </div>
         <div id="gmail-list"></div>
@@ -1465,13 +1465,13 @@ function RC(){
     var dnH=isT?('<span class="'+dnCls+'" style="display:inline-flex;width:20px;height:20px;align-items:center;justify-content:center;background:#3b9eff;color:#fff;border-radius:50%;font-weight:700;font-size:11px">'+dn+'</span>'):('<span class="'+dnCls+'">'+dn+'</span>');
     var chips='';
     var dlc=D.logs.filter(function(l){return l.date===ds2;});
-
-    var allIt=dt.map(function(t){return{k:'t',o:t};}).concat(dlc.map(function(l){return{k:'l',o:l};}));
+    var dgc=(D.goals||[]).filter(function(g){return g.period===ds2;});
+    var allIt=dt.map(function(t){return{k:'t',o:t};}).concat(dlc.map(function(l){return{k:'l',o:l};})).concat(dgc.map(function(g){return{k:'g',o:g};}));
     for(var j=0;j<Math.min(allIt.length,3);j++){
       var ai=allIt[j];
       var chip=document.createElement('div');
       chip.className='chip';
-      chip.addEventListener('click',function(ai2){return function(e){e.stopPropagation();if(ai2.k==='t')openTM(null,ai2.o.id,null);else openLM(ai2.o.date,ai2.o.id);};}(ai));
+      chip.addEventListener('click',function(ai2){return function(e){e.stopPropagation();if(ai2.k==='t')openTM(null,ai2.o.id,null);else if(ai2.k==='l')openLM(ai2.o.date,ai2.o.id);else openGoalModal(ai2.o.id);};}(ai));
       chip.draggable=true;
       chip.addEventListener('dragstart',function(ai2){return function(e){e.stopPropagation();if(ai2.k==='t')calDragStart(e,ai2.o.id,null);else calDragStart(e,null,ai2.o.id);};}(ai));
       if(ai.k==='t'){
@@ -1479,11 +1479,16 @@ function RC(){
         chip.style.cssText='background:'+pc2+'18;border-left:2px solid '+pc2+';padding:1px 4px;border-radius:2px;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;cursor:pointer;display:block;color:var(--txt1)';
         chip.title=ai.o.name;
         chip.textContent=ai.o.name;
-      } else {
+      } else if(ai.k==='l') {
         var lt2=getLT(ai.o.type);var lp2=getP(ai.o.projectId);var lpc2=lp2?lp2.color:lt2.c;
         chip.style.cssText='background:'+lpc2+'15;border-left:2px solid '+lpc2+';padding:1px 4px;border-radius:2px;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;cursor:pointer;display:block;color:'+lpc2+'';
         chip.title=ai.o.content;
         chip.textContent=lt2.i+(ai.o.startTime?' '+ai.o.startTime+' ':' ')+ai.o.content.slice(0,12);
+      } else {
+        var gp2=getP(ai.o.projectId);var gpc2=gp2?gp2.color:'#a78bfa';
+        chip.style.cssText='background:'+gpc2+'15;border-left:2px solid '+gpc2+';padding:1px 4px;border-radius:2px;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;cursor:pointer;display:block;color:'+gpc2+'';
+        chip.title=ai.o.name;
+        chip.textContent='&#9679; '+ai.o.name.slice(0,14);
       }
       chips+=chip.outerHTML;
     }
@@ -1533,6 +1538,22 @@ function RSDP(tasks){
       }
     }
   }
+  // goals
+  var selGoals=(D.goals||[]).filter(function(g){return g.period===ds;});
+  if(selGoals.length){
+    html+='<div style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-transform:uppercase;margin-top:12px;margin-bottom:6px">목표</div>';
+    selGoals.forEach(function(g){
+      var p3=getP(g.projectId);var pc3=p3?p3.color:'#a78bfa';
+      var items3=g.items||[];var done3=items3.filter(function(x){return x.done;}).length;
+      var pct3=items3.length?Math.round(done3/items3.length*100):0;
+      html+='<div style="padding:9px 12px;margin-bottom:6px;background:var(--bg2);border-radius:var(--rs);border-left:3px solid '+pc3+';cursor:pointer" onclick="goalView=\'week\';goalWeekOff=0;SW(\'goals\')">'
+        +'<div style="font-size:12px;font-weight:500;color:'+pc3+'">&#9679; '+esc(g.name)+'</div>'
+        +'<div style="height:4px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;margin:5px 0 3px"><div style="height:100%;width:'+pct3+'%;background:'+pc3+'"></div></div>'
+        +'<div style="font-size:10px;color:var(--txt3)">'+done3+'/'+items3.length+'개 완료 &middot; '+pct3+'%</div>'
+        +'</div>';
+    });
+  }
+  if(!html) html='<div style="font-size:13px;color:var(--txt3);padding:8px 0">이 날짜에 등록된 항목이 없습니다</div>';
   document.getElementById('sdp-tasks').innerHTML=html;
 }
 
@@ -2029,24 +2050,20 @@ function startGmail(){
 
 function gmailFetch(){
   gmailShowScreen('loading');
-  var keywords = ['일정','회의','납품','마감','보고','제출','검토','요청','미팅','meeting','deadline','submit','review','conference'];
-  var activeProjects = D.projects.filter(function(p){ return p.status === 'active'; });
-
   fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50', {
     headers: { Authorization: 'Bearer ' + GM_TOKEN }
   })
   .then(function(r){ return r.json(); })
   .then(function(data){
     if(data.error){
-      if(data.error.code === 401){ GM_TOKEN = null; startGmail(); return; }
+      if(data.error.code===401){ GM_TOKEN=null; startGmail(); return; }
       throw new Error(data.error.message);
     }
-    var msgs = (data.messages || []).slice(0, 30);
+    var msgs = (data.messages||[]).slice(0,30);
     if(!msgs.length){ gmailShowScreen('empty'); return; }
-
     var fetches = msgs.map(function(m){
       return fetch(
-        'https://gmail.googleapis.com/gmail/v1/users/me/messages/' + m.id +
+        'https://gmail.googleapis.com/gmail/v1/users/me/messages/'+m.id+
         '?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date',
         { headers: { Authorization: 'Bearer ' + GM_TOKEN } }
       ).then(function(r){ return r.json(); });
@@ -2057,147 +2074,153 @@ function gmailFetch(){
     if(!details) return;
     var results = [];
     details.forEach(function(msg){
-      if(!msg || !msg.payload) return;
-      var hdrs = msg.payload.headers || [];
-      var subj = '', from = '', dateStr = '';
+      if(!msg||!msg.payload) return;
+      var hdrs = msg.payload.headers||[];
+      var subj='', from='', dateStr='';
       hdrs.forEach(function(h){
-        if(h.name === 'Subject') subj = h.value || '';
-        if(h.name === 'From')    from = h.value || '';
-        if(h.name === 'Date')    dateStr = h.value || '';
+        if(h.name==='Subject') subj=h.value||'(제목없음)';
+        if(h.name==='From')    from=h.value||'';
+        if(h.name==='Date')    dateStr=h.value||'';
       });
-      var sl = subj.toLowerCase();
-      var matched = keywords.some(function(k){ return sl.indexOf(k) > -1; });
-      if(!matched) return;
-
-      // 날짜 파싱
-      var d = new Date(dateStr);
-      var ds = isNaN(d.getTime()) ? '' : d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
-
-      // 마감일 힌트 추출
-      var dl = null;
-      var dlm = subj.match(/([0-9]{4}[-][0-9]{1,2}[-][0-9]{1,2})|([0-9]{1,2}[\/\.][0-9]{1,2})/);
-      if(dlm){
-        try{
-          var dp = new Date(dlm[0].replace(/[.]/g,'/'));
-          if(!isNaN(dp.getTime())) dl = dp.getFullYear()+'-'+pad2(dp.getMonth()+1)+'-'+pad2(dp.getDate());
-        }catch(e){}
-      }
-
-      // 단계 분류
-      var stage = '기타';
-      if(sl.indexOf('회의')>-1 || sl.indexOf('미팅')>-1 || sl.indexOf('meeting')>-1) stage='회의';
-      else if(sl.indexOf('납품')>-1 || sl.indexOf('제출')>-1 || sl.indexOf('submit')>-1) stage='납품 준비';
-      else if(sl.indexOf('보고')>-1 || sl.indexOf('report')>-1) stage='보고';
-      else if(sl.indexOf('검토')>-1 || sl.indexOf('review')>-1) stage='검토';
-      else if(sl.indexOf('마감')>-1 || sl.indexOf('deadline')>-1) stage='납품 준비';
-
+      var d=new Date(dateStr);
+      var ds=isNaN(d.getTime())?'':d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+      var fromClean=from.replace(/<[^>]+>/g,'').trim();
       // 프로젝트 매칭
-      var mp = null;
-      var fromClean = from.replace(/<[^>]+>/g,'').trim();
-      activeProjects.forEach(function(p){
-        if(mp) return;
-        var pn = p.name.slice(0,5);
-        var cl = (p.client||'').slice(0,5);
-        if(subj.indexOf(pn)>-1 || (cl && from.indexOf(cl)>-1)) mp = p;
+      var mp=null;
+      D.projects.filter(function(p){return p.status==='active';}).forEach(function(p){
+        if(mp)return;
+        var pn=p.name.slice(0,5); var cl=(p.client||'').slice(0,4);
+        if(subj.indexOf(pn)>-1||(cl&&from.indexOf(cl)>-1)) mp=p;
       });
-
-      var taskName = subj.length > 28 ? subj.slice(0,28)+'...' : subj;
-      results.push({ subject:subj, from:fromClean, date:ds, taskName:taskName, deadline:dl, stage:stage, projectHint:mp?mp.name:null, summary:fromClean+'에서 받은 메일', _mp:mp });
+      // 키워드로 스테이지 힌트
+      var sl=subj.toLowerCase();
+      var stage='기타';
+      if(sl.indexOf('회의')>-1||sl.indexOf('미팅')>-1||sl.indexOf('meeting')>-1) stage='회의';
+      else if(sl.indexOf('납품')>-1||sl.indexOf('제출')>-1) stage='납품 준비';
+      else if(sl.indexOf('보고')>-1) stage='보고';
+      else if(sl.indexOf('검토')>-1||sl.indexOf('review')>-1) stage='검토';
+      else if(sl.indexOf('마감')>-1||sl.indexOf('deadline')>-1) stage='납품 준비';
+      // 마감일 힌트
+      var dl=null;
+      var dlm=subj.match(/([0-9]{4}[-][0-9]{1,2}[-][0-9]{1,2})|([0-9]{1,2}[.\/][0-9]{1,2})/);
+      if(dlm){try{var dp=new Date(dlm[0].replace(/[.]/g,'/'));if(!isNaN(dp.getTime()))dl=dp.getFullYear()+'-'+pad2(dp.getMonth()+1)+'-'+pad2(dp.getDate());}catch(ex){}}
+      results.push({subject:subj,from:fromClean,date:ds,taskName:subj.length>30?subj.slice(0,30)+'...':subj,deadline:dl,stage:stage,_mp:mp});
     });
-
-    gmSug = results.slice(0, 8);
-    if(!gmSug.length){ gmailShowScreen('empty'); return; }
+    if(!results.length){ gmailShowScreen('empty'); return; }
+    gmSug=results;
+    gmFilter='all'; gmSearch='';
     renderGm();
     gmailShowScreen('results');
   })
   .catch(function(err){
-    document.getElementById('gmail-error-msg').textContent = '오류: ' + err.message;
+    document.getElementById('gmail-error-msg').textContent='오류: '+err.message;
     gmailShowScreen('error');
   });
 }
 
+var gmFilter='all';  // 'all' | 'proj' | 'schedule'
+var gmSearch='';
+
 function renderGm(){
-  var cnt = document.getElementById('gmail-cnt');
-  if(cnt) cnt.textContent = gmSug.length + '건의 일정 관련 이메일 발견';
-  var list = document.getElementById('gmail-list');
+  var cnt=document.getElementById('gmail-cnt');
+  var list=document.getElementById('gmail-list');
+  var toolbar=document.getElementById('gmail-toolbar');
   if(!list) return;
-  list.innerHTML = '';
-  for(var i=0; i<gmSug.length; i++){
-    (function(sg, idx){
-      var key = sg.subject + sg.date;
-      var sc  = stageCol(sg.stage);
-      var mp  = sg._mp;
-      var isA = !!gmAdded[key];
 
-      var wrap = document.createElement('div');
-      wrap.id = 'gm-item-' + idx;
-      wrap.style.cssText = 'background:var(--bg2);border:1px solid rgba(255,255,255,0.1);border-left:3px solid '+(isA?'#00d4aa':sc)+';border-radius:10px;padding:11px 13px;margin-bottom:7px;display:flex;align-items:flex-start;gap:10px;opacity:'+(isA?'0.6':'1');
+  // 필터 적용
+  var items=gmSug.filter(function(sg){
+    if(gmSearch && sg.subject.toLowerCase().indexOf(gmSearch.toLowerCase())===-1 &&
+       sg.from.toLowerCase().indexOf(gmSearch.toLowerCase())===-1) return false;
+    if(gmFilter==='proj') return !!sg._mp;
+    if(gmFilter==='schedule'){
+      var sl=sg.subject.toLowerCase();
+      return ['회의','미팅','납품','보고','검토','마감','meeting','deadline','review','submit'].some(function(k){return sl.indexOf(k)>-1;});
+    }
+    return true;
+  });
 
-      // 내용 div
-      var info = document.createElement('div');
-      info.style.cssText = 'flex:1;min-width:0';
+  if(cnt) cnt.textContent='메일 '+items.length+'건';
 
-      var meta = document.createElement('div');
-      meta.style.cssText = 'font-size:9px;color:var(--txt3);margin-bottom:4px;display:flex;gap:5px;flex-wrap:wrap;align-items:center';
-
-      var fromSpan = document.createElement('span');
-      fromSpan.style.cssText = 'max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-      fromSpan.textContent = sg.from || '';
-      meta.appendChild(fromSpan);
-
-      if(sg.date){
-        var dateSpan = document.createElement('span');
-        dateSpan.textContent = sg.date;
-        meta.appendChild(dateSpan);
-      }
-
-      var stageBadge = document.createElement('span');
-      stageBadge.style.cssText = 'padding:1px 5px;border-radius:99px;background:'+sc+'18;color:'+sc+';border:0.5px solid '+sc+'44;font-size:8px;font-weight:500';
-      stageBadge.textContent = sg.stage || '기타';
-      meta.appendChild(stageBadge);
-
-      if(mp){
-        var projBadge = document.createElement('span');
-        projBadge.style.cssText = 'padding:1px 5px;border-radius:99px;background:'+mp.color+'18;color:'+mp.color+';border:0.5px solid '+mp.color+'44;font-size:8px;font-weight:500';
-        projBadge.textContent = mp.name.slice(0,10);
-        meta.appendChild(projBadge);
-      }
-      info.appendChild(meta);
-
-      var subjDiv = document.createElement('div');
-      subjDiv.style.cssText = 'font-size:10px;color:var(--txt3);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-      subjDiv.textContent = '✉ ' + (sg.subject || '');
-      info.appendChild(subjDiv);
-
-      var nameDiv = document.createElement('div');
-      nameDiv.style.cssText = 'font-size:12px;font-weight:500;color:var(--txt1);margin-bottom:2px';
-      nameDiv.textContent = sg.taskName || '';
-      info.appendChild(nameDiv);
-
-      if(sg.deadline){
-        var dlDiv = document.createElement('div');
-        dlDiv.style.cssText = 'margin-top:4px;font-size:10px;color:#f59e0b;font-weight:600';
-        dlDiv.textContent = '마감: ' + sg.deadline;
-        info.appendChild(dlDiv);
-      }
-
-      wrap.appendChild(info);
-
-      // 추가 버튼
-      var btn = document.createElement('button');
-      btn.id = 'gm-btn-' + idx;
-      btn.style.cssText = 'flex-shrink:0;padding:6px 12px;background:'+(isA?'rgba(0,212,170,0.1)':sc+'22')+';color:'+(isA?'#00d4aa':sc)+';border:1px solid '+(isA?'rgba(0,212,170,0.3)':sc+'55')+';border-radius:7px;cursor:'+(isA?'default':'pointer')+';font-size:11px;font-weight:500;white-space:nowrap;font-family:inherit';
-      btn.textContent = isA ? '추가됨' : '+ 추가';
-      if(!isA){
-        (function(sg2, mp2, idx2){
-          btn.onclick = function(){ addGmTask(sg2, idx2, mp2); };
-        })(sg, mp, idx);
-      }
-      wrap.appendChild(btn);
-      list.appendChild(wrap);
-    })(gmSug[i], i);
+  // 툴바 렌더
+  if(toolbar){
+    toolbar.innerHTML=
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
+      '<input id="gm-search" value="'+gmSearch+'" placeholder="제목/발신자 검색..." oninput="gmSearch=this.value;renderGm()" '+
+        'style="flex:1;min-width:120px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#e2e8f0;padding:6px 10px;border-radius:7px;font-size:11px;outline:none;font-family:inherit"/>' +
+      '<select onchange="gmFilter=this.value;renderGm()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#e2e8f0;padding:6px 8px;border-radius:7px;font-size:11px;outline:none;font-family:inherit">' +
+        '<option value="all"'+(gmFilter==='all'?' selected':'')+'>전체</option>' +
+        '<option value="proj"'+(gmFilter==='proj'?' selected':'')+'>프로젝트 관련</option>' +
+        '<option value="schedule"'+(gmFilter==='schedule'?' selected':'')+'>일정 관련</option>' +
+      '</select>' +
+      '<button onclick="gmailFetch()" style="padding:6px 10px;background:transparent;color:#64748b;border:0.5px solid rgba(255,255,255,0.12);border-radius:7px;cursor:pointer;font-size:10px;font-family:inherit">&#8635; 새로고침</button>' +
+      '</div>';
   }
+
+  list.innerHTML='';
+  if(!items.length){
+    list.innerHTML='<div style="text-align:center;padding:20px;color:#64748b;font-size:12px">검색 결과가 없습니다</div>';
+    return;
+  }
+
+  items.forEach(function(sg, idx){
+    var key=sg.subject+sg.date;
+    var isA=!!gmAdded[key];
+    var mp=sg._mp;
+    var sc=stageCol(sg.stage);
+
+    var wrap=document.createElement('div');
+    wrap.id='gm-item-'+idx;
+    wrap.style.cssText='background:var(--bg2);border:1px solid rgba(255,255,255,0.08);border-left:3px solid '+(isA?'#00d4aa':mp?mp.color:'rgba(255,255,255,0.15)')+';border-radius:9px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;opacity:'+(isA?'0.55':'1');
+
+    // 메일 정보
+    var info=document.createElement('div');
+    info.style.cssText='flex:1;min-width:0';
+
+    var meta=document.createElement('div');
+    meta.style.cssText='font-size:9px;color:var(--txt3);margin-bottom:4px;display:flex;gap:5px;flex-wrap:wrap;align-items:center';
+    var fromSpan=document.createElement('span');
+    fromSpan.style.cssText='max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;color:var(--txt2)';
+    fromSpan.textContent=sg.from||'';
+    meta.appendChild(fromSpan);
+    if(sg.date){var ds2=document.createElement('span');ds2.textContent=sg.date;meta.appendChild(ds2);}
+    if(mp){
+      var pb=document.createElement('span');
+      pb.style.cssText='padding:1px 5px;border-radius:99px;background:'+mp.color+'18;color:'+mp.color+';border:0.5px solid '+mp.color+'44;font-size:8px;font-weight:500';
+      pb.textContent=mp.name.slice(0,10);
+      meta.appendChild(pb);
+    }
+    if(sg.stage!=='기타'){
+      var sb=document.createElement('span');
+      sb.style.cssText='padding:1px 5px;border-radius:99px;background:'+sc+'18;color:'+sc+';border:0.5px solid '+sc+'44;font-size:8px';
+      sb.textContent=sg.stage;
+      meta.appendChild(sb);
+    }
+    info.appendChild(meta);
+
+    var subjDiv=document.createElement('div');
+    subjDiv.style.cssText='font-size:12px;font-weight:500;color:var(--txt1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    subjDiv.textContent=sg.subject||'';
+    info.appendChild(subjDiv);
+
+    if(sg.deadline){
+      var dlDiv=document.createElement('div');
+      dlDiv.style.cssText='margin-top:3px;font-size:10px;color:#f59e0b;font-weight:500';
+      dlDiv.textContent='마감 감지: '+sg.deadline;
+      info.appendChild(dlDiv);
+    }
+    wrap.appendChild(info);
+
+    // 업무추가 버튼
+    var btn=document.createElement('button');
+    btn.id='gm-btn-'+idx;
+    btn.style.cssText='flex-shrink:0;padding:5px 10px;background:'+(isA?'rgba(0,212,170,0.1)':'rgba(59,158,255,0.1)')+';color:'+(isA?'#00d4aa':'#3b9eff')+';border:1px solid '+(isA?'rgba(0,212,170,0.3)':'rgba(59,158,255,0.3)')+';border-radius:7px;cursor:'+(isA?'default':'pointer')+';font-size:10px;font-weight:500;white-space:nowrap;font-family:inherit';
+    btn.textContent=isA?'추가됨':'+ 업무';
+    if(!isA){(function(sg2,mp2,idx2){btn.onclick=function(){addGmTask(sg2,idx2,mp2);};})(sg,mp,idx);}
+    wrap.appendChild(btn);
+    list.appendChild(wrap);
+  });
 }
+
 
 function addGmTask(sg, idx, mp){
   var key = sg.subject + sg.date;
