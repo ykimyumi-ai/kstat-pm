@@ -687,212 +687,244 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
 
 <script>
 /* ═══ GOALS ═══ */
-var goalPeriodView = 'week'; // 'week' | 'day'
+var goalView = 'week';   // 'week' | 'month'
+var goalWeekOff = 0;     // 주 오프셋
+var goalMonthOff = 0;    // 월 오프셋
+
+function setGoalView(v){ goalView=v; goalWeekOff=0; goalMonthOff=0; RGoals(); }
+
+function getWeekRange(off){
+  var now=new Date(); now.setHours(0,0,0,0);
+  now.setDate(now.getDate()-now.getDay()+off*7);
+  var end=new Date(now); end.setDate(now.getDate()+6);
+  return {start:localDS(now), end:localDS(end), label:(now.getMonth()+1)+'월 '+now.getDate()+'일 ~ '+(end.getMonth()+1)+'월 '+end.getDate()+'일'};
+}
+function getMonthRange(off){
+  var now=new Date();
+  var y=now.getFullYear(), m=now.getMonth()+off;
+  while(m<0){m+=12;y--;}
+  while(m>11){m-=12;y++;}
+  var start=new Date(y,m,1), end=new Date(y,m+1,0);
+  return {y:y, m:m, start:localDS(start), end:localDS(end), label:y+'년 '+(m+1)+'월'};
+}
 
 function RGoals(){
-  if(typeof checkMobile==='function'&&typeof isMobile==='function'&&isMobile())closeSB();
-  var container = document.getElementById('goals-container');
-  if(!container) return;
+  if(typeof checkMobile==='function'&&typeof isMobile==='function'&&isMobile())if(typeof closeSB==='function')closeSB();
+  var container=document.getElementById('goals-container');
+  if(!container)return;
+  if(!D.goals)D.goals=[];
+  var goals=D.goals;
+  var ap=D.projects.filter(function(p){return p.status==='active';});
 
-  var ap = D.projects.filter(function(p){return p.status==='active';});
-  var goals = D.goals || [];
-  var today = todayStr();
-  // 이번주 범위
-  var now = new Date(); now.setHours(0,0,0,0);
-  var dayOfWeek = now.getDay();
-  var weekStart = new Date(now); weekStart.setDate(now.getDate()-dayOfWeek);
-  var weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6);
-  var ws = localDS(weekStart), we = localDS(weekEnd);
+  var range, rangeLabel, prevFn, nextFn;
+  if(goalView==='week'){
+    range=getWeekRange(goalWeekOff);
+    rangeLabel=range.label;
+    prevFn='goalWeekOff--;RGoals()';
+    nextFn='goalWeekOff++;RGoals()';
+  } else {
+    range=getMonthRange(goalMonthOff);
+    rangeLabel=range.label;
+    prevFn='goalMonthOff--;RGoals()';
+    nextFn='goalMonthOff++;RGoals()';
+  }
 
-  // period 필터
-  var filtered = goals.filter(function(g){
-    if(goalPeriodView==='day') return g.period===today;
-    // week: 이번주 또는 weekly 타입
-    if(g.type==='weekly') return g.period>=ws && g.period<=we;
-    if(g.type==='daily') return g.period>=ws && g.period<=we;
-    return false;
+  var filtered=goals.filter(function(g){
+    return g.period>=range.start && g.period<=range.end;
   });
 
-  var html2 = '';
+  // 전체 진척
+  var totalItems=filtered.reduce(function(s,g){return s+(g.items||[]).length;},0);
+  var doneItems=filtered.reduce(function(s,g){return s+(g.items||[]).filter(function(x){return x.done;}).length;},0);
+  var totalPct=totalItems?Math.round(doneItems/totalItems*100):0;
 
-  // 상단 헤더
-  html2 += '<div class="gl-header">';
-  html2 += '<div><div style="font-size:20px;font-weight:500;color:var(--txt1)">목표 관리</div>';
-  html2 += '<div style="font-size:12px;color:var(--txt3);margin-top:3px">';
-  if(goalPeriodView==='week'){
-    html2 += ws.slice(5).replace('-','/') + ' ~ ' + we.slice(5).replace('-','/') + ' 주간 목표';
-  } else {
-    html2 += fmtKo(today) + ' 일간 목표';
-  }
-  html2 += '</div></div>';
-  html2 += '<button class="btn bp" onclick="openGoalModal(null)">+ 목표 추가</button>';
-  html2 += '</div>';
+  var h='';
 
-  // 기간 탭
-  html2 += '<div class="gl-period-tabs">';
-  html2 += '<button class="gl-tab'+(goalPeriodView==='week'?' on':'')+'" onclick="goalPeriodView=\'week\';RGoals()">이번 주</button>';
-  html2 += '<button class="gl-tab'+(goalPeriodView==='day'?' on':'')+'" onclick="goalPeriodView=\'day\';RGoals()">오늘</button>';
-  html2 += '</div>';
+  // 헤더
+  h+='<div class="gl-header">';
+  h+='<div><div style="font-size:20px;font-weight:500;color:var(--txt1)">목표 관리</div>';
+  h+='<div style="font-size:12px;color:var(--txt3);margin-top:3px">'+rangeLabel+'</div></div>';
+  h+='<button class="btn bp" onclick="openGoalModal(null)">+ 목표 추가</button>';
+  h+='</div>';
 
-  if(!filtered.length){
-    html2 += '<div class="gl-empty">등록된 목표가 없습니다<br><span style="font-size:11px">+ 목표 추가 버튼으로 시작해보세요</span></div>';
-  } else {
-    // 프로젝트별 그룹핑
-    var byProj = {};
-    filtered.forEach(function(g){
-      var pid = g.projectId||'none';
-      if(!byProj[pid]) byProj[pid]=[];
-      byProj[pid].push(g);
-    });
-    // 프로젝트 없는것 먼저
-    var projOrder = Object.keys(byProj);
-    projOrder.sort(function(a,b){if(a==='none')return -1;if(b==='none')return 1;return 0;});
+  // 뷰 탭 + 기간 내비게이션
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">';
+  h+='<div class="gl-period-tabs">';
+  h+='<button class="gl-tab'+(goalView==='week'?' on':'')+'" onclick="setGoalView(\'week\')">주별</button>';
+  h+='<button class="gl-tab'+(goalView==='month'?' on':'')+'" onclick="setGoalView(\'month\')">월별</button>';
+  h+='</div>';
+  h+='<div style="display:flex;align-items:center;gap:6px">';
+  h+='<button class="btn bg" style="padding:4px 10px" onclick="'+prevFn+'">&#8249;</button>';
+  h+='<span style="font-size:12px;color:var(--txt2);min-width:140px;text-align:center">'+rangeLabel+'</span>';
+  h+='<button class="btn bg" style="padding:4px 10px" onclick="'+nextFn+'">&#8250;</button>';
+  h+='<button class="btn bp" style="font-size:10px;padding:4px 10px" onclick="goalWeekOff=0;goalMonthOff=0;RGoals()">이번 '+( goalView==='week'?'주':'달')+'</button>';
+  h+='</div></div>';
 
-    projOrder.forEach(function(pid){
-      var p = pid==='none' ? null : getP(pid);
-      var pc = p ? p.color : '#94a3b8';
-      html2 += '<div class="gl-section">';
-      html2 += '<div class="gl-section-title"><span style="width:8px;height:8px;border-radius:50%;background:'+pc+';display:inline-block"></span>';
-      html2 += esc(p ? p.name : '공통 목표') + '</div>';
-      html2 += '<div class="gl-grid">';
-      byProj[pid].forEach(function(g){
-        html2 += renderGoalCard(g, pc);
-      });
-      html2 += '</div></div>';
-    });
+  // 전체 진척 바
+  if(filtered.length){
+    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:16px">';
+    h+='<div style="display:flex;justify-content:space-between;margin-bottom:6px">';
+    h+='<span style="font-size:11px;color:var(--txt3)">전체 진척</span>';
+    h+='<span style="font-size:12px;font-weight:500;color:#3b9eff;font-variant-numeric:tabular-nums">'+doneItems+'/'+totalItems+'개 완료 · '+totalPct+'%</span>';
+    h+='</div>';
+    h+='<div style="height:6px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden">';
+    h+='<div style="height:100%;width:'+totalPct+'%;background:#3b9eff;border-radius:3px;transition:width .4s"></div></div>';
+    h+='</div>';
   }
 
-  container.innerHTML = html2;
+  if(goalView==='month'){
+    // 월별: 주차별 그룹핑
+    h+=renderMonthGoals(filtered, range, ap);
+  } else {
+    // 주별: 프로젝트별 그룹핑
+    h+=renderWeekGoals(filtered, ap);
+  }
+
+  container.innerHTML=h;
+}
+
+function renderWeekGoals(filtered, ap){
+  if(!filtered.length) return '<div class="gl-empty">이번 주 등록된 목표가 없습니다<br><span style="font-size:11px">+ 목표 추가 버튼으로 시작해보세요</span></div>';
+  var byProj={};
+  filtered.forEach(function(g){var pid=g.projectId||'none';if(!byProj[pid])byProj[pid]=[];byProj[pid].push(g);});
+  var order=Object.keys(byProj).sort(function(a,b){return a==='none'?-1:b==='none'?1:0;});
+  var h='';
+  order.forEach(function(pid){
+    var p=pid==='none'?null:getP(pid);
+    var pc=p?p.color:'#94a3b8';
+    h+='<div class="gl-section">';
+    h+='<div class="gl-section-title"><span style="width:8px;height:8px;border-radius:50%;background:'+pc+';display:inline-block"></span>'+esc(p?p.name:'공통 목표')+'</div>';
+    h+='<div class="gl-grid">';
+    byProj[pid].forEach(function(g){h+=renderGoalCard(g,pc);});
+    h+='</div></div>';
+  });
+  return h;
+}
+
+function renderMonthGoals(filtered, range, ap){
+  if(!filtered.length) return '<div class="gl-empty">이번 달 등록된 목표가 없습니다</div>';
+  // 주차별 그룹
+  var weeks={};
+  filtered.forEach(function(g){
+    var d=new Date(g.period+'T00:00:00');
+    var dayOfMonth=d.getDate();
+    var weekNum=Math.ceil(dayOfMonth/7);
+    var wk=weekNum+'주차';
+    if(!weeks[wk])weeks[wk]=[];
+    weeks[wk].push(g);
+  });
+  var wkKeys=Object.keys(weeks).sort();
+  var h='';
+  wkKeys.forEach(function(wk){
+    h+='<div class="gl-section">';
+    h+='<div class="gl-section-title">&#128197; '+esc(wk)+'</div>';
+    h+='<div class="gl-grid">';
+    weeks[wk].forEach(function(g){
+      var p=getP(g.projectId);var pc=p?p.color:'#94a3b8';
+      h+=renderGoalCard(g,pc);
+    });
+    h+='</div></div>';
+  });
+  return h;
 }
 
 function renderGoalCard(g, defColor){
-  var p = getP(g.projectId);
-  var pc = p ? p.color : defColor;
-  var items = g.items || [];
-  var done = items.filter(function(x){return x.done;}).length;
-  var pct = items.length ? Math.round(done/items.length*100) : 0;
-  var typeLabel = g.type==='weekly' ? '주간' : '일간';
-  var typeColor = g.type==='weekly' ? '#a78bfa' : '#3b9eff';
+  var p=getP(g.projectId);
+  var pc=p?p.color:defColor;
+  var items=g.items||[];
+  var done=items.filter(function(x){return x.done;}).length;
+  var pct=items.length?Math.round(done/items.length*100):0;
 
-  var html2 = '<div class="gl-card" id="gc-'+g.id+'">';
-  html2 += '<div class="gl-card-head" style="border-left-color:'+pc+'">';
-  html2 += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
-  html2 += '<div class="gl-title">'+esc(g.name)+'</div>';
-  html2 += '<div style="display:flex;gap:5px;align-items:center">';
-  html2 += '<span class="gl-badge" style="color:'+typeColor+';background:'+typeColor+'15;border-color:'+typeColor+'44">'+typeLabel+'</span>';
-  html2 += '<button onclick="openGoalModal(\''+g.id+'\')" style="background:transparent;border:none;color:var(--txt3);cursor:pointer;font-size:13px;padding:0 2px;line-height:1;font-family:inherit" title="편집">&#8942;</button>';
-  html2 += '</div></div>';
-  html2 += '<div class="gl-meta">';
-  if(p) html2 += '<span class="gl-badge" style="color:'+pc+';background:'+pc+'15;border-color:'+pc+'44">'+esc(p.name)+'</span>';
-  html2 += '<span style="font-size:10px;color:var(--txt3)">'+esc(g.period||'')+'</span>';
-  html2 += '</div></div>';
-
-  html2 += '<div class="gl-card-body">';
-  // 진척 바
-  html2 += '<div class="gl-progress">';
-  html2 += '<div class="gl-prog-bar"><div class="gl-prog-fill" style="width:'+pct+'%;background:'+pc+'"></div></div>';
-  html2 += '<div class="gl-prog-txt">'+done+'/'+items.length+'개 완료 · '+pct+'%</div>';
-  html2 += '</div>';
-  // 체크리스트
-  html2 += '<div class="gl-items">';
+  var h='<div class="gl-card" id="gc-'+g.id+'">';
+  h+='<div class="gl-card-head" style="border-left-color:'+pc+'">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:flex-start">';
+  h+='<div class="gl-title">'+esc(g.name)+'</div>';
+  h+='<button onclick="openGoalModal(\''+g.id+'\')" style="background:transparent;border:none;color:var(--txt3);cursor:pointer;font-size:13px;padding:0 2px;line-height:1;font-family:inherit">&#8942;</button>';
+  h+='</div>';
+  h+='<div class="gl-meta">';
+  if(p)h+='<span class="gl-badge" style="color:'+pc+';background:'+pc+'15;border-color:'+pc+'44">'+esc(p.name)+'</span>';
+  h+='<span style="font-size:10px;color:var(--txt3)">'+esc(g.period||'')+'</span>';
+  h+='</div></div>';
+  h+='<div class="gl-card-body">';
+  h+='<div class="gl-progress"><div class="gl-prog-bar"><div class="gl-prog-fill" style="width:'+pct+'%;background:'+pc+'"></div></div>';
+  h+='<div class="gl-prog-txt">'+done+'/'+items.length+'개 완료 &middot; '+pct+'%</div></div>';
+  h+='<div class="gl-items">';
   items.forEach(function(item){
-    html2 += '<div class="gl-item'+(item.done?' done':'')+'" onclick="toggleGoalItem(\''+g.id+'\',\''+item.id+'\')">';
-    html2 += '<div class="gl-check'+(item.done?' on':'')+'"></div>';
-    html2 += '<div class="gl-item-text">'+esc(item.text)+'</div>';
-    html2 += '</div>';
+    h+='<div class="gl-item'+(item.done?' done':'')+'" onclick="toggleGoalItem(\''+g.id+'\',\''+item.id+'\')">';
+    h+='<div class="gl-check'+(item.done?' on':'')+'"></div>';
+    h+='<div class="gl-item-text">'+esc(item.text)+'</div>';
+    h+='</div>';
   });
-  // 항목 추가 인풋
-  html2 += '<div class="gl-add-item">';
-  html2 += '<div class="gl-check" style="opacity:0.3"></div>';
-  html2 += '<input class="gl-add-input" placeholder="항목 추가..." onkeydown="if(event.key===\'Enter\')addGoalItem(\''+g.id+'\',this)" />';
-  html2 += '</div>';
-  html2 += '</div></div></div>';
-  return html2;
+  h+='<div class="gl-add-item"><div class="gl-check" style="opacity:0.3"></div>';
+  h+='<input class="gl-add-input" placeholder="항목 추가..." onkeydown="if(event.key===\'Enter\')addGoalItem(\''+g.id+'\',this)" /></div>';
+  h+='</div></div></div>';
+  return h;
 }
 
 function toggleGoalItem(gid, iid){
-  var g = D.goals.find(function(x){return x.id===gid;});
-  if(!g) return;
-  var item = (g.items||[]).find(function(x){return x.id===iid;});
-  if(!item) return;
-  item.done = !item.done;
-  saveData();
-  RGoals();
+  var g=D.goals.find(function(x){return x.id===gid;});
+  if(!g)return;
+  var item=(g.items||[]).find(function(x){return x.id===iid;});
+  if(!item)return;
+  item.done=!item.done;
+  saveData();RGoals();
 }
 
 function addGoalItem(gid, input){
-  var text = input.value.trim();
-  if(!text) return;
-  var g = D.goals.find(function(x){return x.id===gid;});
-  if(!g) return;
-  if(!g.items) g.items = [];
-  g.items.push({id:uid(), text:text, done:false});
-  input.value = '';
-  saveData();
-  RGoals();
+  var text=input.value.trim();if(!text)return;
+  var g=D.goals.find(function(x){return x.id===gid;});
+  if(!g)return;
+  if(!g.items)g.items=[];
+  g.items.push({id:uid(),text:text,done:false});
+  input.value='';saveData();RGoals();
 }
 
 function openGoalModal(editId){
-  var g = editId ? D.goals.find(function(x){return x.id===editId;}) : null;
-  var isNew = !g;
-  var ap = D.projects.filter(function(p){return p.status==='active';});
-  var pOpts = '<option value="">없음 (공통)</option>';
-  ap.forEach(function(p){pOpts += '<option value="'+p.id+'"'+(g&&g.projectId===p.id?' selected':'')+'>'+esc(p.name)+'</option>';});
-  var today = todayStr();
-  var defPeriod = g ? g.period : today;
-  var defType = g ? g.type : 'daily';
-
-  document.getElementById('mtit').textContent = isNew ? '목표 추가' : '목표 편집';
-  document.getElementById('mbod').innerHTML =
-    '<div class="fi"><label>목표명 *</label><input id="gm-name" value="'+(g?esc(g.name):'')+'" placeholder="예: 하루 1만보 걷기" style="width:100%;background:var(--bg2);border:1px solid rgba(255,255,255,0.12);color:var(--txt1);padding:8px 10px;border-radius:var(--rs);font-size:13px;outline:none;font-family:inherit;box-sizing:border-box"/></div>'+
-    '<div class="fi"><label>연결 프로젝트</label><select id="gm-proj" style="width:100%;background:var(--bg2);border:1px solid rgba(255,255,255,0.12);color:var(--txt1);padding:8px 10px;border-radius:var(--rs);font-size:13px;outline:none;font-family:inherit">'+pOpts+'</select></div>'+
+  var g=editId?D.goals.find(function(x){return x.id===editId;}):null;
+  var isNew=!g;
+  var ap=D.projects.filter(function(p){return p.status==='active';});
+  var pOpts='<option value="">없음 (공통)</option>';
+  ap.forEach(function(p){pOpts+='<option value="'+p.id+'"'+(g&&g.projectId===p.id?' selected':'')+'>'+esc(p.name)+'</option>';});
+  var today=todayStr();
+  var defPeriod=g?g.period:today;
+  var IS2='width:100%;background:var(--bg2);border:1px solid rgba(255,255,255,0.12);color:var(--txt1);padding:8px 10px;border-radius:var(--rs);font-size:13px;outline:none;font-family:inherit;box-sizing:border-box';
+  document.getElementById('mtit').textContent=isNew?'목표 추가':'목표 편집';
+  document.getElementById('mbod').innerHTML=
+    '<div class="fi"><label>목표명 *</label><input id="gm-name" value="'+(g?esc(g.name):'')+'" placeholder="예: 하루 1만보 걷기" style="'+IS2+'"/></div>'+
+    '<div class="fi"><label>연결 프로젝트</label><select id="gm-proj" style="'+IS2+'">'+pOpts+'</select></div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
-    '<div class="fi"><label>유형</label><select id="gm-type" style="width:100%;background:var(--bg2);border:1px solid rgba(255,255,255,0.12);color:var(--txt1);padding:8px 10px;border-radius:var(--rs);font-size:13px;outline:none;font-family:inherit"><option value="daily"'+(defType==='daily'?' selected':'')+'>일간</option><option value="weekly"'+(defType==='weekly'?' selected':'')+'>주간</option></select></div>'+
-    '<div class="fi"><label>기준 날짜</label><input type="date" id="gm-period" value="'+defPeriod+'" style="width:100%;background:var(--bg2);border:1px solid rgba(255,255,255,0.12);color:var(--txt1);padding:8px 10px;border-radius:var(--rs);font-size:13px;outline:none;font-family:inherit;box-sizing:border-box"/></div>'+
-    '</div>'+
-    '<div class="fi"><label>메모 (선택)</label><textarea id="gm-memo" style="width:100%;background:var(--bg2);border:1px solid rgba(255,255,255,0.12);color:var(--txt1);padding:8px 10px;border-radius:var(--rs);font-size:13px;outline:none;font-family:inherit;resize:vertical;min-height:60px;box-sizing:border-box">'+(g&&g.memo?esc(g.memo):'')+'"</textarea></div>';
-
-  var eid = editId||'';
-  var footer = '<button class="btn bg" onclick="CM()">취소</button><button class="btn bp" onclick="saveGoal(\''+eid+'\')">'+(isNew?'추가':'저장')+'</button>';
-  if(!isNew) footer = '<div style="margin-right:auto"><button class="btn bd" onclick="deleteGoal(\''+eid+'\')">삭제</button></div>' + footer;
-  document.getElementById('mfot').innerHTML = footer;
-
-  var pc = '#3b9eff';
-  if(g && g.projectId){var pp=getP(g.projectId);if(pp)pc=pp.color;}
+    '<div class="fi"><label>기준 날짜</label><input type="date" id="gm-period" value="'+defPeriod+'" style="'+IS2+'"/></div>'+
+    '<div class="fi"><label>메모</label><input id="gm-memo" value="'+(g&&g.memo?esc(g.memo):'')+'" placeholder="선택사항" style="'+IS2+'"/></div>'+
+    '</div>';
+  var eid=editId||'';
+  var footer='<button class="btn bg" onclick="CM()">취소</button><button class="btn bp" onclick="saveGoal(\''+eid+'\')">'+(isNew?'추가':'저장')+'</button>';
+  if(!isNew)footer='<div style="margin-right:auto"><button class="btn bd" onclick="deleteGoal(\''+eid+'\')">삭제</button></div>'+footer;
+  document.getElementById('mfot').innerHTML=footer;
+  var pc='#3b9eff';
+  if(g&&g.projectId){var pp=getP(g.projectId);if(pp)pc=pp.color;}
   SM(pc);
 }
 
 function saveGoal(eid){
-  var name = document.getElementById('gm-name').value.trim();
-  if(!name) return;
-  if(!D.goals) D.goals = [];
+  var name=document.getElementById('gm-name').value.trim();
+  if(!name)return;
+  if(!D.goals)D.goals=[];
+  var obj={name:name,projectId:document.getElementById('gm-proj').value,period:document.getElementById('gm-period').value,memo:document.getElementById('gm-memo').value};
   if(eid){
-    var existing = D.goals.find(function(x){return x.id===eid;});
-    if(existing){
-      existing.name = name;
-      existing.projectId = document.getElementById('gm-proj').value;
-      existing.type = document.getElementById('gm-type').value;
-      existing.period = document.getElementById('gm-period').value;
-      existing.memo = document.getElementById('gm-memo').value;
-    }
+    var ex=D.goals.find(function(x){return x.id===eid;});
+    if(ex){ex.name=obj.name;ex.projectId=obj.projectId;ex.period=obj.period;ex.memo=obj.memo;}
   } else {
-    D.goals.push({
-      id:uid(), name:name,
-      projectId: document.getElementById('gm-proj').value,
-      type: document.getElementById('gm-type').value,
-      period: document.getElementById('gm-period').value,
-      memo: document.getElementById('gm-memo').value,
-      items:[]
-    });
+    D.goals.push({id:uid(),items:[],name:obj.name,projectId:obj.projectId,period:obj.period,memo:obj.memo});
   }
-  saveData(); CM();
+  saveData();CM();
 }
 
 function deleteGoal(id){
-  if(!confirm('목표를 삭제하시겠습니까?')) return;
-  D.goals = D.goals.filter(function(g){return g.id!==id;});
-  saveData(); CM();
+  if(!confirm('목표를 삭제하시겠습니까?'))return;
+  D.goals=D.goals.filter(function(g){return g.id!==id;});
+  saveData();CM();
 }
+
 /* ---- 업무 완료 체크 토글 ---- */
 function toggleTaskDone(taskId, e){
   if(e){e.stopPropagation();}
@@ -1211,8 +1243,18 @@ function lkClear(){
 
 function lkRender(){
   for(var i=0;i<6;i++){
-    var el=document.getElementById('ld'+i);
-    if(el){el.classList.toggle('filled',i<lkInput.length);el.classList.remove('error');}
+    var el=document.getElementById('lk-d'+i);
+    if(!el)continue;
+    el.classList.remove('error');
+    if(i<lkInput.length){
+      el.style.background='#3b9eff';
+      el.style.borderColor='#3b9eff';
+      el.style.transform='scale(1.1)';
+    } else {
+      el.style.background='rgba(255,255,255,0.1)';
+      el.style.borderColor='rgba(255,255,255,0.2)';
+      el.style.transform='';
+    }
   }
 }
 
@@ -1223,7 +1265,7 @@ function lkVerify(){
     if(hex===LK_HASH){
       lkUnlock();
     } else {
-      for(var i=0;i<6;i++){var el=document.getElementById('lk-d'+i);if(el){el.classList.remove('filled');el.classList.add('error');}}
+      for(var i=0;i<6;i++){var el=document.getElementById('lk-d'+i);if(el){el.style.background='#ff6b6b';el.style.borderColor='#ff6b6b';}}
       var e=document.getElementById('lock-err');if(e)e.textContent='비밀번호가 틀렸습니다';
       setTimeout(function(){lkInput='';lkRender();var e2=document.getElementById('lock-err');if(e2)e2.textContent='';},800);
     }
@@ -1759,7 +1801,7 @@ function RDASH(){
         var pct2=items2.length?Math.round(done2/items2.length*100):0;
         var gcard=document.createElement('div');
         gcard.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;border-left:3px solid '+pc2+';cursor:pointer';
-        gcard.onclick=function(){goalPeriodView='week';SW('goals');};
+        gcard.onclick=function(){goalView='week';goalWeekOff=0;SW('goals');};
         gcard.innerHTML='<div style="font-size:12px;font-weight:500;color:var(--txt1);margin-bottom:6px">'+esc(g.name)+'</div>'+
           '<div style="height:4px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;margin-bottom:5px"><div style="height:100%;width:'+pct2+'%;background:'+pc2+';border-radius:2px"></div></div>'+
           '<div style="font-size:10px;color:var(--txt3)">'+done2+'/'+items2.length+'개 &middot; '+pct2+'%</div>';
