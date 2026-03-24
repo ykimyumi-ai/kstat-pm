@@ -353,6 +353,40 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
 .tt-drop-indicator{position:absolute;left:52px;right:6px;height:2px;background:#3b9eff;border-radius:1px;z-index:20;pointer-events:none}
 .cc.drag-over{background:rgba(59,158,255,0.1) !important;outline:2px dashed rgba(59,158,255,0.4)}
 
+
+/* ═══ GOALS ═══ */
+.gl-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.gl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.gl-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.gl-card-head{padding:13px 15px 10px;border-bottom:1px solid var(--border);border-left:4px solid}
+.gl-card-body{padding:10px 15px 14px}
+.gl-title{font-size:13px;font-weight:500;color:var(--txt1);margin-bottom:3px}
+.gl-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.gl-badge{padding:2px 8px;border-radius:99px;font-size:9px;font-weight:500;border:0.5px solid}
+.gl-progress{margin:10px 0 8px}
+.gl-prog-bar{height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;margin-bottom:5px}
+.gl-prog-fill{height:100%;border-radius:3px;transition:width .4s}
+.gl-prog-txt{font-size:10px;color:var(--txt3);font-variant-numeric:tabular-nums}
+.gl-items{display:flex;flex-direction:column;gap:5px}
+.gl-item{display:flex;align-items:flex-start;gap:9px;padding:7px 9px;border-radius:var(--rs);cursor:pointer;transition:background .1s}
+.gl-item:hover{background:var(--bg3)}
+.gl-item.done{opacity:0.55}
+.gl-check{width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(255,255,255,0.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .15s}
+.gl-check.on{background:#00d4aa;border-color:#00d4aa}
+.gl-check.on::after{content:'✓';font-size:11px;color:#fff;font-weight:700}
+.gl-item-text{font-size:12px;color:var(--txt1);line-height:1.5;flex:1}
+.gl-item.done .gl-item-text{text-decoration:line-through;color:var(--txt3)}
+.gl-add-item{display:flex;align-items:center;gap:7px;padding:5px 9px;margin-top:4px}
+.gl-add-input{flex:1;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.1);color:var(--txt1);font-size:12px;padding:3px 0;outline:none;font-family:inherit}
+.gl-add-input::placeholder{color:var(--txt3)}
+.gl-add-input:focus{border-bottom-color:#3b9eff}
+.gl-section{margin-bottom:24px}
+.gl-section-title{font-size:9px;color:var(--txt3);letter-spacing:1.5px;font-weight:600;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.gl-empty{text-align:center;padding:32px;color:var(--txt3);font-size:13px}
+.gl-period-tabs{display:flex;gap:5px;margin-bottom:18px}
+.gl-tab{padding:6px 14px;border-radius:var(--rs);font-size:11px;cursor:pointer;font-weight:500;border:0.5px solid var(--border);background:transparent;color:var(--txt3);font-family:inherit;transition:all .15s}
+.gl-tab.on{background:rgba(59,158,255,0.12);color:#3b9eff;border-color:rgba(59,158,255,0.3)}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -412,6 +446,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
       <button class="nb on" id="nb-calendar" onclick="SW('calendar')">&#9673; 캘린더</button>
       <button class="nb" id="nb-daily" onclick="SW('daily')">&#10000; 데일리 로그</button>
       <button class="nb" id="nb-dashboard" onclick="SW('dashboard')">&#9636; 대시보드</button>
+      <button class="nb" id="nb-goals" onclick="SW('goals')">&#9673; 목표 관리</button>
     </div>
     <div class="ps sc">
       <div class="pl">프로젝트</div>
@@ -508,6 +543,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
             <div class="tt-body" id="tt-timeline" onclick="ttClick(event)" style="position:relative"></div>
           </div>
         </div>
+      </div>
+      <div class="vw sc" id="vw-goals">
+        <div id="goals-container"></div>
       </div>
       <div class="vw sc" id="vw-dashboard">
         <div class="sg" id="dash-stats"></div>
@@ -648,7 +686,214 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
 </div>
 
 <script>
-/* ── 업무 완료 체크 토글 ── */
+/* ═══ GOALS ═══ */
+var goalPeriodView = 'week'; // 'week' | 'day'
+
+function RGoals(){
+  if(typeof checkMobile==='function'&&typeof isMobile==='function'&&isMobile())closeSB();
+  var container = document.getElementById('goals-container');
+  if(!container) return;
+
+  var ap = D.projects.filter(function(p){return p.status==='active';});
+  var goals = D.goals || [];
+  var today = todayStr();
+  // 이번주 범위
+  var now = new Date(); now.setHours(0,0,0,0);
+  var dayOfWeek = now.getDay();
+  var weekStart = new Date(now); weekStart.setDate(now.getDate()-dayOfWeek);
+  var weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6);
+  var ws = localDS(weekStart), we = localDS(weekEnd);
+
+  // period 필터
+  var filtered = goals.filter(function(g){
+    if(goalPeriodView==='day') return g.period===today;
+    // week: 이번주 또는 weekly 타입
+    if(g.type==='weekly') return g.period>=ws && g.period<=we;
+    if(g.type==='daily') return g.period>=ws && g.period<=we;
+    return false;
+  });
+
+  var html2 = '';
+
+  // 상단 헤더
+  html2 += '<div class="gl-header">';
+  html2 += '<div><div style="font-size:20px;font-weight:500;color:var(--txt1)">목표 관리</div>';
+  html2 += '<div style="font-size:12px;color:var(--txt3);margin-top:3px">';
+  if(goalPeriodView==='week'){
+    html2 += ws.slice(5).replace('-','/') + ' ~ ' + we.slice(5).replace('-','/') + ' 주간 목표';
+  } else {
+    html2 += fmtKo(today) + ' 일간 목표';
+  }
+  html2 += '</div></div>';
+  html2 += '<button class="btn bp" onclick="openGoalModal(null)">+ 목표 추가</button>';
+  html2 += '</div>';
+
+  // 기간 탭
+  html2 += '<div class="gl-period-tabs">';
+  html2 += '<button class="gl-tab'+(goalPeriodView==='week'?' on':'')+'" onclick="goalPeriodView=\'week\';RGoals()">이번 주</button>';
+  html2 += '<button class="gl-tab'+(goalPeriodView==='day'?' on':'')+'" onclick="goalPeriodView=\'day\';RGoals()">오늘</button>';
+  html2 += '</div>';
+
+  if(!filtered.length){
+    html2 += '<div class="gl-empty">등록된 목표가 없습니다<br><span style="font-size:11px">+ 목표 추가 버튼으로 시작해보세요</span></div>';
+  } else {
+    // 프로젝트별 그룹핑
+    var byProj = {};
+    filtered.forEach(function(g){
+      var pid = g.projectId||'none';
+      if(!byProj[pid]) byProj[pid]=[];
+      byProj[pid].push(g);
+    });
+    // 프로젝트 없는것 먼저
+    var projOrder = Object.keys(byProj);
+    projOrder.sort(function(a,b){if(a==='none')return -1;if(b==='none')return 1;return 0;});
+
+    projOrder.forEach(function(pid){
+      var p = pid==='none' ? null : getP(pid);
+      var pc = p ? p.color : '#94a3b8';
+      html2 += '<div class="gl-section">';
+      html2 += '<div class="gl-section-title"><span style="width:8px;height:8px;border-radius:50%;background:'+pc+';display:inline-block"></span>';
+      html2 += esc(p ? p.name : '공통 목표') + '</div>';
+      html2 += '<div class="gl-grid">';
+      byProj[pid].forEach(function(g){
+        html2 += renderGoalCard(g, pc);
+      });
+      html2 += '</div></div>';
+    });
+  }
+
+  container.innerHTML = html2;
+}
+
+function renderGoalCard(g, defColor){
+  var p = getP(g.projectId);
+  var pc = p ? p.color : defColor;
+  var items = g.items || [];
+  var done = items.filter(function(x){return x.done;}).length;
+  var pct = items.length ? Math.round(done/items.length*100) : 0;
+  var typeLabel = g.type==='weekly' ? '주간' : '일간';
+  var typeColor = g.type==='weekly' ? '#a78bfa' : '#3b9eff';
+
+  var html2 = '<div class="gl-card" id="gc-'+g.id+'">';
+  html2 += '<div class="gl-card-head" style="border-left-color:'+pc+'">';
+  html2 += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
+  html2 += '<div class="gl-title">'+esc(g.name)+'</div>';
+  html2 += '<div style="display:flex;gap:5px;align-items:center">';
+  html2 += '<span class="gl-badge" style="color:'+typeColor+';background:'+typeColor+'15;border-color:'+typeColor+'44">'+typeLabel+'</span>';
+  html2 += '<button onclick="openGoalModal(\''+g.id+'\')" style="background:transparent;border:none;color:var(--txt3);cursor:pointer;font-size:13px;padding:0 2px;line-height:1;font-family:inherit" title="편집">&#8942;</button>';
+  html2 += '</div></div>';
+  html2 += '<div class="gl-meta">';
+  if(p) html2 += '<span class="gl-badge" style="color:'+pc+';background:'+pc+'15;border-color:'+pc+'44">'+esc(p.name)+'</span>';
+  html2 += '<span style="font-size:10px;color:var(--txt3)">'+esc(g.period||'')+'</span>';
+  html2 += '</div></div>';
+
+  html2 += '<div class="gl-card-body">';
+  // 진척 바
+  html2 += '<div class="gl-progress">';
+  html2 += '<div class="gl-prog-bar"><div class="gl-prog-fill" style="width:'+pct+'%;background:'+pc+'"></div></div>';
+  html2 += '<div class="gl-prog-txt">'+done+'/'+items.length+'개 완료 · '+pct+'%</div>';
+  html2 += '</div>';
+  // 체크리스트
+  html2 += '<div class="gl-items">';
+  items.forEach(function(item){
+    html2 += '<div class="gl-item'+(item.done?' done':'')+'" onclick="toggleGoalItem(\''+g.id+'\',\''+item.id+'\')">';
+    html2 += '<div class="gl-check'+(item.done?' on':'')+'"></div>';
+    html2 += '<div class="gl-item-text">'+esc(item.text)+'</div>';
+    html2 += '</div>';
+  });
+  // 항목 추가 인풋
+  html2 += '<div class="gl-add-item">';
+  html2 += '<div class="gl-check" style="opacity:0.3"></div>';
+  html2 += '<input class="gl-add-input" placeholder="항목 추가..." onkeydown="if(event.key===\'Enter\')addGoalItem(\''+g.id+'\',this)" />';
+  html2 += '</div>';
+  html2 += '</div></div></div>';
+  return html2;
+}
+
+function toggleGoalItem(gid, iid){
+  var g = D.goals.find(function(x){return x.id===gid;});
+  if(!g) return;
+  var item = (g.items||[]).find(function(x){return x.id===iid;});
+  if(!item) return;
+  item.done = !item.done;
+  saveData();
+  RGoals();
+}
+
+function addGoalItem(gid, input){
+  var text = input.value.trim();
+  if(!text) return;
+  var g = D.goals.find(function(x){return x.id===gid;});
+  if(!g) return;
+  if(!g.items) g.items = [];
+  g.items.push({id:uid(), text:text, done:false});
+  input.value = '';
+  saveData();
+  RGoals();
+}
+
+function openGoalModal(editId){
+  var g = editId ? D.goals.find(function(x){return x.id===editId;}) : null;
+  var isNew = !g;
+  var ap = D.projects.filter(function(p){return p.status==='active';});
+  var pOpts = '<option value="">없음 (공통)</option>';
+  ap.forEach(function(p){pOpts += '<option value="'+p.id+'"'+(g&&g.projectId===p.id?' selected':'')+'>'+esc(p.name)+'</option>';});
+  var today = todayStr();
+  var defPeriod = g ? g.period : today;
+  var defType = g ? g.type : 'daily';
+
+  document.getElementById('mtit').textContent = isNew ? '목표 추가' : '목표 편집';
+  document.getElementById('mbod').innerHTML =
+    '<div class="fi"><label>목표명 *</label><input id="gm-name" value="'+(g?esc(g.name):'')+'" placeholder="예: 하루 1만보 걷기" style="width:100%;background:var(--bg2);border:1px solid rgba(255,255,255,0.12);color:var(--txt1);padding:8px 10px;border-radius:var(--rs);font-size:13px;outline:none;font-family:inherit;box-sizing:border-box"/></div>'+
+    '<div class="fi"><label>연결 프로젝트</label><select id="gm-proj" style="width:100%;background:var(--bg2);border:1px solid rgba(255,255,255,0.12);color:var(--txt1);padding:8px 10px;border-radius:var(--rs);font-size:13px;outline:none;font-family:inherit">'+pOpts+'</select></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+    '<div class="fi"><label>유형</label><select id="gm-type" style="width:100%;background:var(--bg2);border:1px solid rgba(255,255,255,0.12);color:var(--txt1);padding:8px 10px;border-radius:var(--rs);font-size:13px;outline:none;font-family:inherit"><option value="daily"'+(defType==='daily'?' selected':'')+'>일간</option><option value="weekly"'+(defType==='weekly'?' selected':'')+'>주간</option></select></div>'+
+    '<div class="fi"><label>기준 날짜</label><input type="date" id="gm-period" value="'+defPeriod+'" style="width:100%;background:var(--bg2);border:1px solid rgba(255,255,255,0.12);color:var(--txt1);padding:8px 10px;border-radius:var(--rs);font-size:13px;outline:none;font-family:inherit;box-sizing:border-box"/></div>'+
+    '</div>'+
+    '<div class="fi"><label>메모 (선택)</label><textarea id="gm-memo" style="width:100%;background:var(--bg2);border:1px solid rgba(255,255,255,0.12);color:var(--txt1);padding:8px 10px;border-radius:var(--rs);font-size:13px;outline:none;font-family:inherit;resize:vertical;min-height:60px;box-sizing:border-box">'+(g&&g.memo?esc(g.memo):'')+'"</textarea></div>';
+
+  var eid = editId||'';
+  var footer = '<button class="btn bg" onclick="CM()">취소</button><button class="btn bp" onclick="saveGoal(\''+eid+'\')">'+(isNew?'추가':'저장')+'</button>';
+  if(!isNew) footer = '<div style="margin-right:auto"><button class="btn bd" onclick="deleteGoal(\''+eid+'\')">삭제</button></div>' + footer;
+  document.getElementById('mfot').innerHTML = footer;
+
+  var pc = '#3b9eff';
+  if(g && g.projectId){var pp=getP(g.projectId);if(pp)pc=pp.color;}
+  SM(pc);
+}
+
+function saveGoal(eid){
+  var name = document.getElementById('gm-name').value.trim();
+  if(!name) return;
+  if(!D.goals) D.goals = [];
+  if(eid){
+    var existing = D.goals.find(function(x){return x.id===eid;});
+    if(existing){
+      existing.name = name;
+      existing.projectId = document.getElementById('gm-proj').value;
+      existing.type = document.getElementById('gm-type').value;
+      existing.period = document.getElementById('gm-period').value;
+      existing.memo = document.getElementById('gm-memo').value;
+    }
+  } else {
+    D.goals.push({
+      id:uid(), name:name,
+      projectId: document.getElementById('gm-proj').value,
+      type: document.getElementById('gm-type').value,
+      period: document.getElementById('gm-period').value,
+      memo: document.getElementById('gm-memo').value,
+      items:[]
+    });
+  }
+  saveData(); CM();
+}
+
+function deleteGoal(id){
+  if(!confirm('목표를 삭제하시겠습니까?')) return;
+  D.goals = D.goals.filter(function(g){return g.id!==id;});
+  saveData(); CM();
+}
+/* ---- 업무 완료 체크 토글 ---- */
 function toggleTaskDone(taskId, e){
   if(e){e.stopPropagation();}
   for(var i=0;i<D.tasks.length;i++){
@@ -660,7 +905,7 @@ function toggleTaskDone(taskId, e){
   saveData();RA();
 }
 
-/* ── 타임라인 드래그 앤 드롭 ── */
+/* ---- 타임라인 드래그 앤 드롭 ---- */
 var _dragLogId = null;
 var _dragStartY = 0;
 var _dropIndicator = null;
@@ -761,7 +1006,7 @@ function ttDragEnd(e){
 
 function ttTouchEnd(e){ ttDragEnd(e); }
 
-/* ── 캘린더 셀 드래그 (날짜 변경) ── */
+/* ---- 캘린더 셀 드래그 (날짜 변경) ---- */
 var _calDragTaskId = null;
 var _calDragLogId  = null;
 
@@ -800,7 +1045,7 @@ function calDragDrop(e, dateStr){
 }
 
 
-/* ── 엑셀 내보내기 ── */
+/* ---- 엑셀 내보내기 ---- */
 function exportExcel(){
   if(typeof XLSX === 'undefined'){
     alert('엑셀 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');
@@ -808,7 +1053,7 @@ function exportExcel(){
   }
   var wb = XLSX.utils.book_new();
 
-  /* ── 시트 1: 업무 목록 ── */
+  /* ---- 시트 1: 업무 목록 ---- */
   var taskRows = [['프로젝트','업무명','수행단계','상태','기한','D-day','메모']];
   var tasks = D.tasks.slice().sort(function(a,b){
     var da = a.deadline||'9999', db = b.deadline||'9999';
@@ -832,7 +1077,7 @@ function exportExcel(){
   wsTask['!cols'] = [{wch:24},{wch:32},{wch:14},{wch:8},{wch:12},{wch:8},{wch:30}];
   XLSX.utils.book_append_sheet(wb, wsTask, '업무목록');
 
-  /* ── 시트 2: 데일리 로그 ── */
+  /* ---- 시트 2: 데일리 로그 ---- */
   var logRows = [['날짜','프로젝트','유형','시작','종료','투입시간(h)','업무내용','연결업무']];
   var logs = D.logs.slice().sort(function(a,b){
     var da=a.date||'', db=b.date||'';
@@ -857,7 +1102,7 @@ function exportExcel(){
   wsLog['!cols'] = [{wch:12},{wch:24},{wch:10},{wch:7},{wch:7},{wch:10},{wch:36},{wch:24}];
   XLSX.utils.book_append_sheet(wb, wsLog, '데일리로그');
 
-  /* ── 시트 3: 프로젝트별 투입시간 요약 ── */
+  /* ---- 시트 3: 프로젝트별 투입시간 요약 ---- */
   var sumRows = [['프로젝트','발주처','전체업무','완료','진행중','예정','총투입시간(h)']];
   D.projects.filter(function(p){return p.status==='active';}).forEach(function(p){
     var pt = D.tasks.filter(function(t){return t.projectId===p.id;});
@@ -877,7 +1122,7 @@ function exportExcel(){
   wsSum['!cols'] = [{wch:28},{wch:16},{wch:8},{wch:6},{wch:8},{wch:6},{wch:14}];
   XLSX.utils.book_append_sheet(wb, wsSum, '프로젝트요약');
 
-  /* ── 헤더 스타일 (배경색) ── */
+  /* ---- 헤더 스타일 (배경색) ---- */
   [wsTask, wsLog, wsSum].forEach(function(ws){
     var range = XLSX.utils.decode_range(ws['!ref']);
     for(var C=range.s.c; C<=range.e.c; C++){
@@ -897,7 +1142,7 @@ function exportExcel(){
 
 
 
-/* ═══ MOBILE SIDEBAR ═══ */
+/* ====== MOBILE SIDEBAR ====== */
 function toggleSB(){
   var sb=document.getElementById('sidebar');
   var ov=document.getElementById('sb-overlay');
@@ -939,7 +1184,7 @@ window.addEventListener('resize',checkMobile);
 })();
 
 
-/* ═══ LOCK SCREEN ═══ */
+/* ====== LOCK SCREEN ====== */
 var LK_HASH = 'd0e21b2c42ecc09482517565794d63bf9a57dbb93596c91f9f198c1abbbfe103';
 var lkInput = '';
 var lkUnlocked = false;
@@ -1047,17 +1292,17 @@ function loadData(){
   .then(function(r){return r.json();})
   .then(function(rows){
     if(rows&&rows.length&&rows[0].data){
-      D=rows[0].data;
+      D=rows[0].data;if(!D.goals)D.goals=[];
       try{localStorage.setItem('kstat_pm',JSON.stringify(D));}catch(e){}
     } else {
-      D={projects:DEF_P,tasks:mkSampleTasks(),logs:mkSampleLogs()};
+      D={projects:DEF_P,tasks:mkSampleTasks(),logs:mkSampleLogs(),goals:[]};
     }
     setLoaded(true);
     RA();
   })
   .catch(function(){
     // 오프라인 시 로컬 캐시 사용
-    if(!D.projects)D={projects:DEF_P,tasks:mkSampleTasks(),logs:mkSampleLogs()};
+    if(!D.projects)D={projects:DEF_P,tasks:mkSampleTasks(),logs:mkSampleLogs(),goals:[]};
     setLoaded(true);
     RA();
   });
@@ -1110,7 +1355,7 @@ setInterval(function(){
 },30000);
 setInterval(function(){document.getElementById('sdate').textContent=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});},60000);
 
-function RA(){RSB();if(curV==='calendar')RC();if(curV==='daily')RD();if(curV==='dashboard')RDASH();RTB();if(typeof checkMobile==='function')checkMobile();}
+function RA(){RSB();if(curV==='calendar')RC();if(curV==='daily')RD();if(curV==='dashboard')RDASH();if(curV==='goals')RGoals();RTB();if(typeof checkMobile==='function')checkMobile();}
 
 function RSB(){
   var el=document.getElementById('proj-list');
@@ -1135,7 +1380,7 @@ function RSB(){
 function TP(id){selProj=selProj===id?null:id;RA();if(typeof closeSB==='function'&&typeof isMobile==='function'&&isMobile())closeSB();}
 
 function RTB(){
-  var titles={calendar:'캘린더',daily:'데일리 로그',dashboard:'프로젝트 대시보드'};
+  var titles={calendar:'캘린더',daily:'데일리 로그',dashboard:'프로젝트 대시보드',goals:'목표 관리'};
   document.getElementById('ttl').textContent=titles[curV];
   var ap=D.projects.filter(function(p){return p.status==='active';});
   var at=D.tasks.filter(function(t){return ap.some(function(p){return p.id===t.projectId;});});
@@ -1150,7 +1395,7 @@ function RTB(){
 
 function SW(v){
   curV=v;
-  var ks=['calendar','daily','dashboard'];
+  var ks=['calendar','daily','dashboard','goals'];
   for(var i=0;i<ks.length;i++){
     document.getElementById('vw-'+ks[i]).classList.toggle('on',ks[i]===v);
     document.getElementById('nb-'+ks[i]).classList.toggle('on',ks[i]===v);
@@ -1297,7 +1542,7 @@ function RWS(){
   document.getElementById('wk-grid').innerHTML=html2;
 }
 
-/* ── TIMETABLE ── */
+/* ---- TIMETABLE ---- */
 var TT_START=5, TT_END=24, TT_H=56;  // 05:00~24:00, 56px per hour
 
 function RTT(){
@@ -1492,6 +1737,39 @@ function RDASH(){
     cards_html+='</div></div>';
   }
   document.getElementById('dash-cards').innerHTML=cards_html;
+  // 목표 요약
+  var goals = D.goals||[];
+  if(goals.length){
+    var today2=todayStr();
+    var now2=new Date();now2.setHours(0,0,0,0);
+    var dow2=now2.getDay();
+    var ws2=new Date(now2);ws2.setDate(now2.getDate()-dow2);
+    var we2=new Date(ws2);we2.setDate(ws2.getDate()+6);
+    var wss=localDS(ws2),wes=localDS(we2);
+    var weekGoals=goals.filter(function(g){return g.period>=wss&&g.period<=wes;});
+    var todayGoals=goals.filter(function(g){return g.period===today2;});
+    var allItems=weekGoals.reduce(function(s,g){return s+(g.items||[]).length;},0);
+    var doneItems=weekGoals.reduce(function(s,g){return s+(g.items||[]).filter(function(x){return x.done;}).length;},0);
+    if(weekGoals.length){
+      var gs='<div style="margin-top:20px"><div style="font-size:11px;color:var(--txt3);letter-spacing:1.5px;font-weight:600;text-transform:uppercase;margin-bottom:10px">이번 주 목표 현황</div>';
+      gs+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">';
+      weekGoals.forEach(function(g){
+        var p2=getP(g.projectId);var pc2=p2?p2.color:'#94a3b8';
+        var items2=g.items||[];var done2=items2.filter(function(x){return x.done;}).length;
+        var pct2=items2.length?Math.round(done2/items2.length*100):0;
+        var gcard=document.createElement('div');
+        gcard.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;border-left:3px solid '+pc2+';cursor:pointer';
+        gcard.onclick=function(){goalPeriodView='week';SW('goals');};
+        gcard.innerHTML='<div style="font-size:12px;font-weight:500;color:var(--txt1);margin-bottom:6px">'+esc(g.name)+'</div>'+
+          '<div style="height:4px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;margin-bottom:5px"><div style="height:100%;width:'+pct2+'%;background:'+pc2+';border-radius:2px"></div></div>'+
+          '<div style="font-size:10px;color:var(--txt3)">'+done2+'/'+items2.length+'개 &middot; '+pct2+'%</div>';
+        gs+=gcard.outerHTML;
+      });
+      gs+='</div></div>';
+      document.getElementById('dash-cards').innerHTML += gs;
+    }
+  }
+
 }
 
 var curMod=null;
@@ -1645,7 +1923,7 @@ function importData(e){
 function showSyncMsg(ok,txt){var m=document.getElementById('sync-msg');m.style.display='block';m.style.background=ok?'rgba(0,212,170,0.1)':'rgba(255,107,107,0.1)';m.style.border='1px solid '+(ok?'rgba(0,212,170,0.3)':'rgba(255,107,107,0.3)');m.style.color=ok?'#00d4aa':'#ff6b6b';m.textContent=txt;}
 
 
-/* ═══ GMAIL OAUTH ═══ */
+/* ====== GMAIL OAUTH ====== */
 var GM_TOKEN = null;
 var GM_SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
 
