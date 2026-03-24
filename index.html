@@ -340,8 +340,270 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
 .lock-key.del{font-size:16px;color:#94a3b8}
 .lock-err{font-size:11px;color:#ff6b6b;height:16px;margin-top:2px}
 
+
+/* 체크박스 */
+.task-check{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s}
+.task-check.done{background:#00d4aa;border-color:#00d4aa}
+.task-check.done::after{content:'✓';font-size:10px;color:#fff;font-weight:700}
+.task-check:hover{border-color:#00d4aa}
+
+/* 드래그 */
+.tt-block.dragging{opacity:0.5;cursor:grabbing}
+.tt-block{cursor:grab}
+.tt-drop-indicator{position:absolute;left:52px;right:6px;height:2px;background:#3b9eff;border-radius:1px;z-index:20;pointer-events:none}
+.cc.drag-over{background:rgba(59,158,255,0.1) !important;outline:2px dashed rgba(59,158,255,0.4)}
+
 </style>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer>
+/* ── 업무 완료 체크 토글 ── */
+function toggleTaskDone(taskId, e){
+  if(e){e.stopPropagation();}
+  for(var i=0;i<D.tasks.length;i++){
+    if(D.tasks[i].id===taskId){
+      D.tasks[i].status = D.tasks[i].status==='완료' ? '진행중' : '완료';
+      break;
+    }
+  }
+  saveData();RA();
+}
+
+/* ── 타임라인 드래그 앤 드롭 ── */
+var _dragLogId = null;
+var _dragStartY = 0;
+var _dropIndicator = null;
+
+function ttBlockMouseDown(e, logId){
+  if(e.button !== 0) return;
+  _dragLogId = logId;
+  _dragStartY = e.clientY;
+  e.preventDefault();
+  var blk = e.currentTarget;
+  blk.classList.add('dragging');
+  // 드롭 인디케이터 생성
+  _dropIndicator = document.createElement('div');
+  _dropIndicator.className = 'tt-drop-indicator';
+  document.getElementById('tt-timeline').appendChild(_dropIndicator);
+  document.addEventListener('mousemove', ttDragMove, {passive:false});
+  document.addEventListener('mouseup', ttDragEnd);
+  // 터치 지원
+  document.addEventListener('touchmove', ttTouchMove, {passive:false});
+  document.addEventListener('touchend', ttTouchEnd);
+}
+
+function ttGetTimeFromY(y){
+  var tl = document.getElementById('tt-timeline');
+  if(!tl) return null;
+  var rect = tl.getBoundingClientRect();
+  var relY = y - rect.top + tl.scrollTop;
+  var totalH = tl.scrollHeight;
+  var totalMin = (TT_END - TT_START) * 60;
+  var min = Math.round((relY / totalH) * totalMin / 30) * 30; // 30분 단위 스냅
+  min = Math.max(0, Math.min(totalMin - 30, min));
+  var absMin = TT_START * 60 + min;
+  return pad2(Math.floor(absMin/60)) + ':' + pad2(absMin%60);
+}
+
+function ttDragMove(e){
+  if(!_dragLogId) return;
+  e.preventDefault();
+  var y = e.clientY;
+  var t = ttGetTimeFromY(y);
+  if(!t || !_dropIndicator) return;
+  // 인디케이터 위치
+  var slot = document.querySelector('#tt-timeline [data-hr="'+parseInt(t)+'"'+
+    '[data-min="'+(parseInt(t.split(':')[1])>=30?30:0)+'"]');
+  if(slot) _dropIndicator.style.top = slot.offsetTop + 'px';
+  _dropIndicator.setAttribute('data-time', t);
+}
+
+function ttTouchMove(e){
+  if(!_dragLogId) return;
+  e.preventDefault();
+  var touch = e.touches[0];
+  var fakeEv = {clientY: touch.clientY, preventDefault: function(){}};
+  ttDragMove(fakeEv);
+}
+
+function ttDragEnd(e){
+  if(!_dragLogId) return;
+  var newTime = _dropIndicator ? _dropIndicator.getAttribute('data-time') : null;
+  // 블록 dragging 클래스 제거
+  var blks = document.querySelectorAll('.tt-block.dragging');
+  blks.forEach(function(b){b.classList.remove('dragging');});
+  // 인디케이터 제거
+  if(_dropIndicator && _dropIndicator.parentNode){
+    _dropIndicator.parentNode.removeChild(_dropIndicator);
+  }
+  _dropIndicator = null;
+  // 시간 업데이트
+  if(newTime){
+    for(var i=0;i<D.logs.length;i++){
+      if(D.logs[i].id===_dragLogId){
+        var log = D.logs[i];
+        if(log.startTime && log.endTime){
+          // 기간 유지하면서 시작시간만 변경
+          var sp = log.startTime.split(':');
+          var ep = log.endTime.split(':');
+          var dur = (parseInt(ep[0])*60+parseInt(ep[1])) - (parseInt(sp[0])*60+parseInt(sp[1]));
+          var np = newTime.split(':');
+          var newStartMin = parseInt(np[0])*60 + parseInt(np[1]);
+          var newEndMin = newStartMin + dur;
+          log.startTime = newTime;
+          log.endTime = pad2(Math.floor(newEndMin/60))+':'+pad2(newEndMin%60);
+          log.hours = (dur/60).toFixed(1);
+        } else {
+          log.startTime = newTime;
+        }
+        break;
+      }
+    }
+    saveData(); RTT();
+  }
+  _dragLogId = null;
+  document.removeEventListener('mousemove', ttDragMove);
+  document.removeEventListener('mouseup', ttDragEnd);
+  document.removeEventListener('touchmove', ttTouchMove);
+  document.removeEventListener('touchend', ttTouchEnd);
+}
+
+function ttTouchEnd(e){ ttDragEnd(e); }
+
+/* ── 캘린더 셀 드래그 (날짜 변경) ── */
+var _calDragTaskId = null;
+var _calDragLogId  = null;
+
+function calDragStart(e, taskId, logId){
+  if(taskId) _calDragTaskId = taskId;
+  if(logId)  _calDragLogId  = logId;
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function calDragOver(e){
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function calDragLeave(e){
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function calDragDrop(e, dateStr){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(_calDragTaskId){
+    for(var i=0;i<D.tasks.length;i++){
+      if(D.tasks[i].id===_calDragTaskId){D.tasks[i].deadline=dateStr;break;}
+    }
+    _calDragTaskId=null;
+    saveData();RC();
+  }
+  if(_calDragLogId){
+    for(var i=0;i<D.logs.length;i++){
+      if(D.logs[i].id===_calDragLogId){D.logs[i].date=dateStr;break;}
+    }
+    _calDragLogId=null;
+    saveData();RC();
+  }
+}
+
+
+/* ── 엑셀 내보내기 ── */
+function exportExcel(){
+  if(typeof XLSX === 'undefined'){
+    alert('엑셀 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+  var wb = XLSX.utils.book_new();
+
+  /* ── 시트 1: 업무 목록 ── */
+  var taskRows = [['프로젝트','업무명','수행단계','상태','기한','D-day','메모']];
+  var tasks = D.tasks.slice().sort(function(a,b){
+    var da = a.deadline||'9999', db = b.deadline||'9999';
+    return da.localeCompare(db);
+  });
+  tasks.forEach(function(t){
+    var p = getP(t.projectId);
+    var d = getDays(t.deadline);
+    var dday = d===null?'':d<0?'D+'+Math.abs(d):d===0?'D-DAY':'D-'+d;
+    taskRows.push([
+      p?p.name:'',
+      t.name||'',
+      t.stage||'',
+      t.status||'',
+      t.deadline||'',
+      dday,
+      t.memo||''
+    ]);
+  });
+  var wsTask = XLSX.utils.aoa_to_sheet(taskRows);
+  wsTask['!cols'] = [{wch:24},{wch:32},{wch:14},{wch:8},{wch:12},{wch:8},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, wsTask, '업무목록');
+
+  /* ── 시트 2: 데일리 로그 ── */
+  var logRows = [['날짜','프로젝트','유형','시작','종료','투입시간(h)','업무내용','연결업무']];
+  var logs = D.logs.slice().sort(function(a,b){
+    var da=a.date||'', db=b.date||'';
+    if(da!==db) return da.localeCompare(db);
+    return (a.startTime||'').localeCompare(b.startTime||'');
+  });
+  logs.forEach(function(l){
+    var p = getP(l.projectId);
+    var linkedTask = l.taskId ? D.tasks.filter(function(t){return t.id===l.taskId;})[0] : null;
+    logRows.push([
+      l.date||'',
+      p?p.name:'',
+      l.type||'',
+      l.startTime||'',
+      l.endTime||'',
+      l.hours||0,
+      l.content||'',
+      linkedTask?linkedTask.name:''
+    ]);
+  });
+  var wsLog = XLSX.utils.aoa_to_sheet(logRows);
+  wsLog['!cols'] = [{wch:12},{wch:24},{wch:10},{wch:7},{wch:7},{wch:10},{wch:36},{wch:24}];
+  XLSX.utils.book_append_sheet(wb, wsLog, '데일리로그');
+
+  /* ── 시트 3: 프로젝트별 투입시간 요약 ── */
+  var sumRows = [['프로젝트','발주처','전체업무','완료','진행중','예정','총투입시간(h)']];
+  D.projects.filter(function(p){return p.status==='active';}).forEach(function(p){
+    var pt = D.tasks.filter(function(t){return t.projectId===p.id;});
+    var pl = D.logs.filter(function(l){return l.projectId===p.id;});
+    var totalH = pl.reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);
+    sumRows.push([
+      p.name,
+      p.client||'',
+      pt.length,
+      pt.filter(function(t){return t.status==='완료';}).length,
+      pt.filter(function(t){return t.status==='진행중';}).length,
+      pt.filter(function(t){return t.status==='예정';}).length,
+      Math.round(totalH*10)/10
+    ]);
+  });
+  var wsSum = XLSX.utils.aoa_to_sheet(sumRows);
+  wsSum['!cols'] = [{wch:28},{wch:16},{wch:8},{wch:6},{wch:8},{wch:6},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, wsSum, '프로젝트요약');
+
+  /* ── 헤더 스타일 (배경색) ── */
+  [wsTask, wsLog, wsSum].forEach(function(ws){
+    var range = XLSX.utils.decode_range(ws['!ref']);
+    for(var C=range.s.c; C<=range.e.c; C++){
+      var addr = XLSX.utils.encode_cell({r:0, c:C});
+      if(!ws[addr]) continue;
+      ws[addr].s = {
+        fill:{fgColor:{rgb:'1E3A5F'}},
+        font:{bold:true, color:{rgb:'FFFFFF'}},
+        alignment:{horizontal:'center'}
+      };
+    }
+  });
+
+  var today = todayStr();
+  XLSX.writeFile(wb, 'KSTAT_일정_'+today+'.xlsx');
+}
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div id="lock-screen" style="position:fixed;inset:0;background:#0a0e17;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
@@ -406,6 +668,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);font-fami
     </div>
     <div style="padding:8px 6px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:5px">
       <button class="apb" style="background:rgba(234,67,53,0.08);border:0.5px solid rgba(234,67,53,0.25);color:#ea4335;font-weight:500" onclick="openGmail()">&#9993; Gmail 일정 가져오기</button>
+      <button class="apb" style="background:rgba(0,212,170,0.08);border:0.5px solid rgba(0,212,170,0.25);color:#00d4aa;font-weight:500" onclick="exportExcel()">&#8595; 엑셀 내보내기</button>
       <button class="apb" style="background:rgba(59,158,255,0.08);border:0.5px solid rgba(59,158,255,0.25);color:#3b9eff;font-weight:500" onclick="openSync()">&#8644; 데이터 동기화</button>
     </div>
     <div class="sf"><div class="sd" id="sdate"></div></div>
@@ -805,6 +1068,8 @@ function RC(){
       var chip=document.createElement('div');
       chip.className='chip';
       chip.addEventListener('click',function(ai2){return function(e){e.stopPropagation();if(ai2.k==='t')openTM(null,ai2.o.id,null);else openLM(ai2.o.date,ai2.o.id);};}(ai));
+      chip.draggable=true;
+      chip.addEventListener('dragstart',function(ai2){return function(e){e.stopPropagation();if(ai2.k==='t')calDragStart(e,ai2.o.id,null);else calDragStart(e,null,ai2.o.id);};}(ai));
       if(ai.k==='t'){
         var p2=getP(ai.o.projectId);var pc2=p2?p2.color:'#888';
         chip.style.cssText='background:'+pc2+'18;border-left:2px solid '+pc2+';padding:1px 4px;border-radius:2px;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;cursor:pointer;display:block;color:var(--txt1)';
@@ -819,7 +1084,8 @@ function RC(){
       chips+=chip.outerHTML;
     }
     var more2=allIt.length>3?'<div class="more">+'+(allIt.length-3)+'건</div>':'';
-    html+='<div class="cc'+(isSel?' csel':'')+'" onclick="SD('+dn+')">';
+    var ds_cc=localDS(new Date(calY,calM,dn));
+    html+='<div class="cc'+(isSel?' csel':'')+'" onclick="SD('+dn+')" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDragDrop(event,\''+ds_cc+'\')">';
     html+='<div style="display:flex;align-items:center;gap:2px;margin-bottom:3px">'+dnH+(hasU?'<span class="tdot"></span>':'')+'</div>';
     html+=chips+more2+'</div>';
   }
@@ -842,7 +1108,8 @@ function RSDP(tasks){
   else{
     if(dt.length){
       html+='<div style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">업무 마감</div>';
-      for(var i=0;i<dt.length;i++){var t=dt[i];var p=getP(t.projectId);var pc=p?p.color:'#888';html+='<div class="trow" style="cursor:pointer;border-left:3px solid '+pc+';padding-left:9px" onclick="openTM(null,\''+t.id+'\',null)"><div style="flex:1;min-width:0"><div class="tn" style="font-size:12px">'+esc(t.name)+'</div><div class="tg">'+(p?esc(p.name):'')+(t.stage?' · '+esc(t.stage):'')+'</div></div>'+pillH(t.status)+'</div>';}
+      for(var i=0;i<dt.length;i++){var t=dt[i];var p=getP(t.projectId);var pc=p?p.color:'#888';var tDone=t.status==='완료';
+        html+='<div class="trow" style="cursor:pointer;border-left:3px solid '+pc+';padding-left:9px;opacity:'+(tDone?0.55:1)+'"><div class="task-check'+(tDone?' done':'')+'" onclick="toggleTaskDone(\''+t.id+'\',event)" title="완료 토글" style="flex-shrink:0"></div><div style="flex:1;min-width:0;cursor:pointer" onclick="openTM(null,\''+t.id+'\',null)"><div class="tn" style="font-size:12px;'+(tDone?'text-decoration:line-through':'')+'">'+esc(t.name)+'</div><div class="tg">'+(p?esc(p.name):'')+(t.stage?' · '+esc(t.stage):'')+'</div></div>'+pillH(t.status)+'</div>';}
     }
     if(dl.length){
       html+='<div style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-transform:uppercase;margin:'+(dt.length?'12px 0 6px':'0 0 6px')+'">데일리 로그</div>';
@@ -868,7 +1135,7 @@ function RSDP(tasks){
 function RUP(tasks){
   var up=tasks.filter(function(t){return t.status!=='완료'&&t.deadline;}).sort(function(a,b){return new Date(a.deadline)-new Date(b.deadline);}).slice(0,8);
   var html='';
-  for(var i=0;i<up.length;i++){var t=up[i];var p=getP(t.projectId);var pc=p?p.color:'#888';var d=getDays(t.deadline);var uc='#00d4aa';if(d!==null&&(d<0||d<=3))uc='#ff6b6b';else if(d!==null&&d<=7)uc='#f59e0b';var dlbl=d===null?'—':d<0?'D+'+Math.abs(d):d===0?'D-DAY':'D-'+d;html+='<div class="ui" style="border-left-color:'+pc+'" onclick="openTM(null,\''+t.id+'\',null)"><div class="uin">'+esc(t.name)+'</div><div class="uip">'+(p?esc(p.name):'')+'</div><div class="uif">'+pillH(t.status)+'<span style="font-size:9px;color:'+uc+';font-weight:600;font-variant-numeric:tabular-nums">'+dlbl+'</span></div></div>';}
+  for(var i=0;i<up.length;i++){var t=up[i];var p=getP(t.projectId);var pc=p?p.color:'#888';var d=getDays(t.deadline);var uc='#00d4aa';if(d!==null&&(d<0||d<=3))uc='#ff6b6b';else if(d!==null&&d<=7)uc='#f59e0b';var dlbl=d===null?'—':d<0?'D+'+Math.abs(d):d===0?'D-DAY':'D-'+d;html+='<div class="ui" style="border-left-color:'+pc+'" onclick="openTM(null,\''+t.id+'\',null)"><div style="display:flex;align-items:center;gap:7px;margin-bottom:3px"><div class="task-check'+(t.status==='완료'?' done':'')+'" onclick="toggleTaskDone(\''+t.id+'\',event)"></div><div class="uin" style="'+(t.status==='완료'?'text-decoration:line-through;color:var(--txt3)':'')+';margin-bottom:0">'+esc(t.name)+'</div></div><div class="uip">'+(p?esc(p.name):'')+'</div><div class="uif">'+pillH(t.status)+'<span style="font-size:9px;color:'+uc+';font-weight:600;font-variant-numeric:tabular-nums">'+dlbl+'</span></div></div>';}
   document.getElementById('up-list').innerHTML=html;
 }
 function CP(){calM===0?(calY--,calM=11):calM--;selDay=null;selDate=null;RC();}
@@ -937,11 +1204,13 @@ function RTT(){
     taskHtml+='<div style="font-size:9px;color:var(--txt3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">오늘 마감 업무</div>';
     for(var i=0;i<tasks.length;i++){
       var t=tasks[i];var p=getP(t.projectId);var pc=p?p.color:'#888';
-      taskHtml+='<div class="tp-item" style="border-left-color:'+pc+'" onclick="openTM(null,\''+t.id+'\',null)">';
-      taskHtml+='<div class="tp-name">'+esc(t.name)+'</div>';
-      taskHtml+='<div class="tp-meta">'+(p?esc(p.name):'')+(t.stage?' · '+esc(t.stage):'')+'</div>';
-      taskHtml+='<div style="margin-top:4px">'+pillH(t.status)+'</div>';
-      taskHtml+='</div>';
+      var isDone=t.status==='완료';
+      taskHtml+='<div class="tp-item" style="border-left-color:'+pc+';opacity:'+(isDone?'0.55':'1')+'" onclick="openTM(null,\''+t.id+'\',null)">';
+      taskHtml+='<div style="display:flex;align-items:center;gap:8px">';
+      taskHtml+='<div class="task-check'+(isDone?' done':'')+'" onclick="toggleTaskDone(\''+t.id+'\',event)" title="완료 토글"></div>';
+      taskHtml+='<div style="flex:1;min-width:0"><div class="tp-name" style="'+(isDone?'text-decoration:line-through;color:var(--txt3)':'')+'">'+esc(t.name)+'</div>';
+      taskHtml+='<div class="tp-meta">'+(p?esc(p.name):'')+(t.stage?' · '+esc(t.stage):'')+'</div></div>';
+      taskHtml+='</div></div>';
     }
   }
   // unscheduled logs (no startTime)
@@ -1020,7 +1289,11 @@ function RTT(){
     blk.innerHTML='<div class="tb-time">'+log.startTime+(log.endTime?' ~ '+log.endTime:'')+(log.hours>0?' ('+parseFloat(log.hours).toFixed(1)+'h)':'')+'</div>'
       +'<div class="tb-name">'+esc(log.content)+'</div>'
       +'<div class="tb-proj">'+lt2.i+' '+(p3?esc(p3.name):'')+'</div>';
-    (function(lid){blk.onclick=function(e){e.stopPropagation();openLM(ds,lid);};})(log.id);
+    (function(lid){
+      blk.onclick=function(e){e.stopPropagation();openLM(ds,lid);};
+      blk.addEventListener('mousedown',function(e){ttBlockMouseDown(e,lid);});
+      blk.addEventListener('touchstart',function(e){ttBlockMouseDown(e,lid);},{passive:false});
+    })(log.id);
     tl2.appendChild(blk);
   }
 
