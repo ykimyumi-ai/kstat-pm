@@ -1,0 +1,17 @@
+{
+  "name": "namp-2026-deck",
+  "version": "1.0.0",
+  "private": true,
+  "description": "2026 납품대금 연동제 실태조사 제안서(발췌 11장) 편집 가능 PPTX 생성기",
+  "scripts": {
+    "build": "node build.js",
+    "verify": "node build.js && python3 verify.py",
+    "render": "bash tools/render.sh /tmp/namp-render"
+  },
+  "dependencies": {
+    "pptxgenjs": "^4.0.1"
+  },
+  "devDependencies": {
+    "font-kopub": "^1.0.2"
+  }
+}
