@@ -131,7 +131,7 @@ def main():
     if any(e['id'] == 's10' for e in expected) and tables < 1:
         fails.append('네이티브 표가 하나도 없음 (10장 비목별 산출표 필요)')
     # 14~18장은 원본에 사진·아이콘이 있어 삽입 이미지가 반드시 있어야 한다.
-    need_pic = {'s14': 9, 's15': 2, 's16': 3, 's17': 1, 's18': 4}
+    need_pic = {'s14': 9, 's15': 2, 's16': 3, 's17': 1, 's18': 4, 's20': 1}
     want = sum(v for k, v in need_pic.items() if any(e['id'] == k for e in expected))
     if want and pics < want:
         fails.append(f'삽입 이미지 {pics}개 < 기대 {want}개 (사진·아이콘 누락)')

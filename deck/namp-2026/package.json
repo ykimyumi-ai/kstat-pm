@@ -10,7 +10,8 @@
     "render": "bash tools/render.sh /tmp/namp-render",
     "build:matrix": "OUT_NAME=2026_납품대금연동제_업종별밀도_응답난이도_3p.pptx node build.js --only 14,15,16",
     "build:roadmap": "OUT_NAME=2026_납품대금연동제_판별조사_2027승인연계_1p.pptx node build.js --only 17",
-    "build:outcome": "OUT_NAME=2026_납품대금연동제_기대성과활용_투입체계_2p.pptx node build.js --only 18,19"
+    "build:outcome": "OUT_NAME=2026_납품대금연동제_기대성과활용_투입체계_2p.pptx node build.js --only 18,19",
+    "build:extra": "OUT_NAME=2026_납품대금연동제_추가제안4종_1p.pptx node build.js --only 20"
   },
   "dependencies": {
     "pptxgenjs": "^4.0.1"
