@@ -619,9 +619,28 @@ function bigNum(sl, s, p, o) {
   });
 }
 
+/**
+ * 점선 구분선 (18·19장의 행 구분).
+ * 실선 사각형으로는 점선을 낼 수 없어 LINE 도형에 dashType 을 준다.
+ * dir 은 'h'(기본) 또는 'v'.
+ */
+function dline(sl, s, p, o) {
+  const horiz = (o.dir || 'h') === 'h';
+  sl.addShape(o.pres.shapes.LINE, {
+    x: s.X(p.x), y: s.Y(p.y),
+    w: horiz ? s.W(p.w) : 0,
+    h: horiz ? 0 : s.H(p.h),
+    line: {
+      color: o.color || 'CFD3DA',
+      width: o.width || 0.75,
+      dashType: o.dash || 'sysDash',
+    },
+  });
+}
+
 module.exports = {
   pill, panel, card, text, numBadge, goldBadge, arrowBadge,
   runHead, chapterBadge, titleBlock, quoteBand, formulaBox, footnote,
-  image, accentCard, bandBar, roundRect,
+  image, accentCard, bandBar, roundRect, dline,
   vline, hline, timeline, chevron, arrowDown, bullets, richBullets, bigNum, txtOpts,
 };

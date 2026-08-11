@@ -38,6 +38,10 @@ CROPS = [
     ('p16.png', 's16-truck',     752, 344, 222,  94),
     ('p16.png', 's16-clipboard',1278, 320, 176, 124),
     ('p17.png', 's17-gavel',    1296, 668, 232, 182),
+    ('p18.png', 's18-report',   1280, 723, 256, 155),
+    ('p18.png', 's18-icon1',     305, 770,  77,  78),
+    ('p18.png', 's18-icon2',     617, 770,  78,  78),
+    ('p18.png', 's18-icon3',     931, 770,  78,  78),
 ]
 
 
@@ -61,7 +65,16 @@ def main():
     cache = {}
     for fname, name, x, y, cw, ch in CROPS:
         if fname not in cache:
-            cache[fname] = read_png(os.path.join(src, fname))
+            path = os.path.join(src, fname)
+            # 원본 PNG는 회차별로 나눠 받았다. 이번 회차에 없는 원본은 건너뛴다
+            # (이미 assets/ 에 잘라 둔 결과물이 그대로 남아 있다).
+            if not os.path.exists(path):
+                print(f'{fname} 없음 — 건너뜀')
+                cache[fname] = None
+                continue
+            cache[fname] = read_png(path)
+        if cache[fname] is None:
+            continue
         w, h, px = cache[fname]
         buf = bytearray(cw * ch * 3)
         for row in range(ch):
