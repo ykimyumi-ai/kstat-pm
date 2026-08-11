@@ -14,6 +14,7 @@ import unicodedata
 from pathlib import Path
 
 from pptx import Presentation
+from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.util import Emu
 
 ROOT = Path(__file__).parent
@@ -59,8 +60,8 @@ def collect_expected():
           if (Array.isArray(v)) { v.forEach(walk); return; }
           if (typeof v === 'object') {
             // 화면에 찍히는 글자가 아니라 서식·메타 표시자
-            const META = new Set(['img', 'id', 'options', 'c', 'accent',
-                                  'quoteStyle', 'fixes']);
+            const META = new Set(['img', 'img2', 'icon', 'id', 'options', 'c',
+                                  'accent', 'tone', 'tint', 'quoteStyle', 'fixes']);
             for (const k of Object.keys(v)) {
               if (META.has(k)) continue;
               walk(v[k]);
@@ -101,6 +102,7 @@ def main():
 
     xml_all = ''
     tables = 0
+    pics = 0
     for i, sl in enumerate(prs.slides, 1):
         shapes = list(sl.shapes)
         if len(shapes) < MIN_SHAPES:
@@ -108,6 +110,8 @@ def main():
         for sh in shapes:
             if sh.has_table:
                 tables += 1
+            if sh.shape_type == MSO_SHAPE_TYPE.PICTURE:
+                pics += 1
         x = sl._element.xml
         xml_all += x
         for prst in FORBIDDEN_PRST:
@@ -126,6 +130,11 @@ def main():
     # 네이티브 표는 10장 비목별 산출표에만 있다. 10장이 대상일 때만 요구한다.
     if any(e['id'] == 's10' for e in expected) and tables < 1:
         fails.append('네이티브 표가 하나도 없음 (10장 비목별 산출표 필요)')
+    # 14~16장은 원본에 사진·아이콘이 있어 삽입 이미지가 반드시 있어야 한다.
+    need_pic = {'s14': 9, 's15': 2, 's16': 3}
+    want = sum(v for k, v in need_pic.items() if any(e['id'] == k for e in expected))
+    if want and pics < want:
+        fails.append(f'삽입 이미지 {pics}개 < 기대 {want}개 (사진·아이콘 누락)')
 
     fonts = set(re.findall(r'typeface="([^"]+)"', xml_all))
     stray = {f for f in fonts if 'KoPub' not in f and f not in ('+mn-lt', '+mj-lt', 'Arial')}
@@ -149,7 +158,7 @@ def main():
 
     # ── 결과 ─────────────────────────────────────────────
     print(f'파일: {path}')
-    print(f'슬라이드 {n}장 / {w_in:.3f}×{h_in:.3f}in / 네이티브 표 {tables}개')
+    print(f'슬라이드 {n}장 / {w_in:.3f}×{h_in:.3f}in / 네이티브 표 {tables}개 / 삽입 이미지 {pics}개')
     print(f'슬라이드별 도형 수: '
           + ', '.join(str(len(list(s.shapes))) for s in prs.slides))
     print(f'사용 폰트: {sorted(fonts)}')

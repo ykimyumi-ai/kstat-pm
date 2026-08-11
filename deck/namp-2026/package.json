@@ -7,7 +7,8 @@
     "build": "node build.js --only 1,2,3,4,5,6,7,8,9,10,11",
     "build:energy": "OUT_NAME=2026_납품대금연동제_에너지경비_작동지표_2p.pptx node build.js --only 12,13",
     "verify": "python3 verify.py",
-    "render": "bash tools/render.sh /tmp/namp-render"
+    "render": "bash tools/render.sh /tmp/namp-render",
+    "build:matrix": "OUT_NAME=2026_납품대금연동제_업종별밀도_응답난이도_3p.pptx node build.js --only 14,15,16"
   },
   "dependencies": {
     "pptxgenjs": "^4.0.1"

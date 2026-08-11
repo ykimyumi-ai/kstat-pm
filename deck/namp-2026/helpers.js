@@ -90,6 +90,43 @@ function pill(sl, s, p, o) {
   }
 }
 
+/**
+ * 모서리가 둥근 사각형 (테두리 선택).
+ * 14~16장의 패널·카드는 모서리가 둥글다. 사진 크롭이 그 둥근 모서리를 품고 있어
+ * 각진 사각형으로 그리면 이음매가 드러나므로 같은 곡률로 그린다.
+ */
+function roundRect(sl, s, p, o) {
+  const rad = Math.min(o.rad === undefined ? 14 : o.rad, p.w / 2, p.h / 2);
+  const dia = rad * 2;
+  const fill = { color: o.fill || C.WHITE };
+  const line = o.line ? { color: o.line, width: 0.75 } : { type: 'none' };
+  for (const [cx, cy] of [
+    [p.x, p.y], [p.x + p.w - dia, p.y],
+    [p.x, p.y + p.h - dia], [p.x + p.w - dia, p.y + p.h - dia],
+  ]) {
+    sl.addShape(o.pres.shapes.OVAL, {
+      x: s.X(cx), y: s.Y(cy), w: s.W(dia), h: s.H(dia), fill, line,
+    });
+  }
+  sl.addShape(o.pres.shapes.RECTANGLE, {
+    x: s.X(p.x + rad), y: s.Y(p.y), w: s.W(p.w - dia), h: s.H(p.h), fill, line,
+  });
+  sl.addShape(o.pres.shapes.RECTANGLE, {
+    x: s.X(p.x), y: s.Y(p.y + rad), w: s.W(p.w), h: s.H(p.h - dia), fill, line,
+  });
+  if (o.line) {
+    // 합성 이음매의 테두리 선을 안쪽 면으로 덮어 한 겹처럼 보이게 한다.
+    sl.addShape(o.pres.shapes.RECTANGLE, {
+      x: s.X(p.x + rad), y: s.Y(p.y + 1), w: s.W(p.w - dia), h: s.H(p.h - 2),
+      fill, line: { type: 'none' },
+    });
+    sl.addShape(o.pres.shapes.RECTANGLE, {
+      x: s.X(p.x + 1), y: s.Y(p.y + rad), w: s.W(p.w - 2), h: s.H(p.h - dia),
+      fill, line: { type: 'none' },
+    });
+  }
+}
+
 /** 모서리가 살짝 둥근 큰 패널을 사각형으로 근사 */
 function panel(sl, s, p, o) {
   o = o || {};
@@ -338,6 +375,77 @@ function formulaBox(sl, s, p, o) {
   });
 }
 
+/**
+ * 원본에서 잘라낸 사진·아이콘 배치 (14~16장 전용).
+ * 사진은 도형으로 재현할 수 없어 원본 크롭을 그대로 얹는다.
+ * 크롭에 pill 픽셀이 함께 들어간 경우가 있어 pill 을 그린 뒤에 호출해야 한다.
+ */
+function image(sl, s, p, o) {
+  sl.addImage({
+    path: `${__dirname}/assets/${o.name}.png`,
+    x: s.X(p.x), y: s.Y(p.y), w: s.W(p.w), h: s.H(p.h),
+  });
+}
+
+/**
+ * 좌측 컬러 바가 붙은 흰 카드 (15·16장의 위험 요인 / 판별 단계 / 대응 전략).
+ * 제목 색과 바 색이 같고, 본문은 • 불릿 목록이다.
+ */
+function accentCard(sl, s, p, o) {
+  sl.addShape(o.pres.shapes.RECTANGLE, {
+    x: s.X(p.x), y: s.Y(p.y), w: s.W(p.w), h: s.H(p.h),
+    fill: { color: C.WHITE }, line: { color: 'E4E7EC', width: 0.75 },
+  });
+  sl.addShape(o.pres.shapes.RECTANGLE, {
+    x: s.X(p.x), y: s.Y(p.y), w: s.W(9), h: s.H(p.h),
+    fill: { color: o.tone }, line: { type: 'none' },
+  });
+  const hh = o.hh === undefined ? 30 : o.hh;      // 제목 높이
+  const bt = o.bt === undefined ? 40 : o.bt;      // 불릿 시작 offset
+  sl.addText(o.head, {
+    x: s.X(p.x + 24), y: s.Y(p.y + 6), w: s.W(220), h: s.H(hh),
+    ...txtOpts({ fs: o.hfs, bold: true, color: o.tone, align: 'left' }),
+  });
+  bullets(sl, s, { x: p.x + 24, y: p.y + bt, w: p.w - 40, h: p.h - bt - 8 }, {
+    items: o.items, fs: o.fs, gap: o.gap === undefined ? 2 : o.gap, lsm: o.lsm || 1.1,
+  });
+}
+
+/**
+ * 하단 강조 밴드 — 짙은 배경에 일부 조각만 노랑으로 강조.
+ * runs 는 [{text, hl:true}] 형태.
+ */
+function bandBar(sl, s, p, o) {
+  const rad = Math.min(p.h / 2, o.rad === undefined ? 20 : o.rad);
+  const dia = rad * 2;
+  const fill = { color: o.fill };
+  for (const [cx, cy] of [
+    [p.x, p.y], [p.x + p.w - dia, p.y],
+    [p.x, p.y + p.h - dia], [p.x + p.w - dia, p.y + p.h - dia],
+  ]) {
+    sl.addShape(o.pres.shapes.OVAL, {
+      x: s.X(cx), y: s.Y(cy), w: s.W(dia), h: s.H(dia), fill, line: { type: 'none' },
+    });
+  }
+  sl.addShape(o.pres.shapes.RECTANGLE, {
+    x: s.X(p.x + rad), y: s.Y(p.y), w: s.W(p.w - dia), h: s.H(p.h), fill, line: { type: 'none' },
+  });
+  sl.addShape(o.pres.shapes.RECTANGLE, {
+    x: s.X(p.x), y: s.Y(p.y + rad), w: s.W(p.w), h: s.H(p.h - dia), fill, line: { type: 'none' },
+  });
+  const plain = o.runs.map((r) => r.text).join('');
+  sl.addText(
+    o.runs.map((r) => ({
+      text: r.text,
+      options: { color: r.hl ? (o.hl || 'FFE500') : C.WHITE, bold: true },
+    })),
+    {
+      x: s.X(p.x + 30), y: s.Y(p.y), w: s.W(p.w - 60), h: s.H(p.h),
+      ...txtOpts({ fs: fit(plain, o.fs, s.W(p.w - 60), true, 0.06), bold: true, align: 'center' }),
+    }
+  );
+}
+
 /** 최하단 ※ 각주 */
 function footnote(sl, s, o) {
   sl.addText(o.text, {
@@ -514,5 +622,6 @@ function bigNum(sl, s, p, o) {
 module.exports = {
   pill, panel, card, text, numBadge, goldBadge, arrowBadge,
   runHead, chapterBadge, titleBlock, quoteBand, formulaBox, footnote,
+  image, accentCard, bandBar, roundRect,
   vline, hline, timeline, chevron, arrowDown, bullets, richBullets, bigNum, txtOpts,
 };
