@@ -15,10 +15,16 @@ const { SLIDE_W, SLIDE_H, C, scaler } = require('./theme');
 const content = require('./content');
 
 const OUT_DIR = path.join(__dirname, 'out');
-const OUT_FILE = process.env.OUT_NAME || '2026_납품대금연동제_실태조사_제안서_발췌11p.pptx';
 
 const onlyArg = process.argv.indexOf('--only');
 const only = onlyArg > -1 ? process.argv[onlyArg + 1].split(',').map(Number) : null;
+
+// --only 로 일부만 뽑을 때 기본 이름을 그대로 쓰면 11장 파일을 덮어쓴다.
+// OUT_NAME 을 주지 않은 부분 빌드는 장수를 반영한 이름으로 떨어뜨린다.
+const OUT_FILE = process.env.OUT_NAME
+  || (only
+    ? `2026_납품대금연동제_실태조사_제안서_발췌${only.length}p.pptx`
+    : '2026_납품대금연동제_실태조사_제안서_발췌11p.pptx');
 
 const pres = new PptxGenJS();
 pres.defineLayout({ name: 'NAMP', width: SLIDE_W, height: SLIDE_H });

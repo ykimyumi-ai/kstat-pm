@@ -19,7 +19,10 @@ const FM = require('./fontmetrics');
  * kstat-ppt 원칙 15에 따라 10pt 아래로는 내려가지 않는다.
  */
 function fit(str, fs, boxWIn, bold, padIn) {
-  const avail = boxWIn - (padIn === undefined ? 0.08 : padIn);
+  // 폭 예측이 실제 렌더보다 2~3% 작게 나오는 구간이 있어 안전 여유를 둔다.
+  // 넉넉히 들어가는 문자열은 축소가 일어나지 않으므로 영향이 없고,
+  // 경계에 걸친 문자열만 한 단계 작아져 줄바꿈을 면한다.
+  const avail = (boxWIn - (padIn === undefined ? 0.08 : padIn)) * 0.972;
   return FM.fitFont(str, fs, Math.max(avail, 0.2), bold, MIN_PT);
 }
 
@@ -211,29 +214,64 @@ function titleBlock(sl, s, o) {
  */
 function quoteBand(sl, s, p, o) {
   const bw = 4, arm = Math.min(26, p.h * 0.28);
-  const brk = (x, dir) => {
-    sl.addShape(o.pres.shapes.RECTANGLE, {
-      x: s.X(x), y: s.Y(p.y), w: s.W(bw), h: s.H(p.h),
-      fill: { color: C.LINE }, line: { type: 'none' },
-    });
-    for (const yy of [p.y, p.y + p.h - bw]) {
-      sl.addShape(o.pres.shapes.RECTANGLE, {
-        x: s.X(dir > 0 ? x : x - arm + bw), y: s.Y(yy), w: s.W(arm), h: s.H(bw),
-        fill: { color: C.LINE }, line: { type: 'none' },
+  if (o.style === 'box') {
+    // 13장은 대괄호가 아니라 얇은 테두리의 둥근 박스다.
+    // ROUNDED_RECTANGLE 금지라 모서리 원 + 사각형 두 장으로 합성한다.
+    const rad = 12;
+    const edge = { color: 'DDE1E8', width: 0.75 };
+    const white = { color: C.WHITE };
+    for (const [cx, cy] of [
+      [p.x, p.y], [p.x + p.w - rad * 2, p.y],
+      [p.x, p.y + p.h - rad * 2], [p.x + p.w - rad * 2, p.y + p.h - rad * 2],
+    ]) {
+      sl.addShape(o.pres.shapes.OVAL, {
+        x: s.X(cx), y: s.Y(cy), w: s.W(rad * 2), h: s.H(rad * 2),
+        fill: white, line: edge,
       });
     }
-  };
-  brk(p.x, 1);
-  brk(p.x + p.w - bw, -1);
+    sl.addShape(o.pres.shapes.RECTANGLE, {
+      x: s.X(p.x + rad), y: s.Y(p.y), w: s.W(p.w - rad * 2), h: s.H(p.h),
+      fill: white, line: edge,
+    });
+    sl.addShape(o.pres.shapes.RECTANGLE, {
+      x: s.X(p.x), y: s.Y(p.y + rad), w: s.W(p.w), h: s.H(p.h - rad * 2),
+      fill: white, line: edge,
+    });
+    // 합성 이음매의 테두리 선을 흰 사각형으로 덮어 한 겹처럼 보이게 한다.
+    sl.addShape(o.pres.shapes.RECTANGLE, {
+      x: s.X(p.x + rad), y: s.Y(p.y + 1), w: s.W(p.w - rad * 2), h: s.H(p.h - 2),
+      fill: white, line: { type: 'none' },
+    });
+    sl.addShape(o.pres.shapes.RECTANGLE, {
+      x: s.X(p.x + 1), y: s.Y(p.y + rad), w: s.W(p.w - 2), h: s.H(p.h - rad * 2),
+      fill: white, line: { type: 'none' },
+    });
+  } else {
+    const brk = (x, dir) => {
+      sl.addShape(o.pres.shapes.RECTANGLE, {
+        x: s.X(x), y: s.Y(p.y), w: s.W(bw), h: s.H(p.h),
+        fill: { color: C.LINE }, line: { type: 'none' },
+      });
+      for (const yy of [p.y, p.y + p.h - bw]) {
+        sl.addShape(o.pres.shapes.RECTANGLE, {
+          x: s.X(dir > 0 ? x : x - arm + bw), y: s.Y(yy), w: s.W(arm), h: s.H(bw),
+          fill: { color: C.LINE }, line: { type: 'none' },
+        });
+      }
+    };
+    brk(p.x, 1);
+    brk(p.x + p.w - bw, -1);
+  }
 
   const qfs = o.fs * 1.5;
+  const qy = o.style === 'box' ? p.y + 4 : p.y + 2;
   sl.addText('“', {
-    x: s.X(p.x + 30), y: s.Y(p.y + 2), w: s.W(60), h: s.H(p.h * 0.6),
-    ...txtOpts({ fs: qfs, bold: true, color: C.LINE, align: 'center', valign: 'top' }),
+    x: s.X(p.x + (o.style === 'box' ? 16 : 30)), y: s.Y(qy), w: s.W(60), h: s.H(p.h * 0.6),
+    ...txtOpts({ fs: qfs, bold: true, color: 'B9BEC6', align: 'center', valign: 'top' }),
   });
   sl.addText('”', {
-    x: s.X(p.x + p.w - 90), y: s.Y(p.y + 2), w: s.W(60), h: s.H(p.h * 0.6),
-    ...txtOpts({ fs: qfs, bold: true, color: C.LINE, align: 'center', valign: 'top' }),
+    x: s.X(p.x + p.w - (o.style === 'box' ? 76 : 90)), y: s.Y(qy), w: s.W(60), h: s.H(p.h * 0.6),
+    ...txtOpts({ fs: qfs, bold: true, color: 'B9BEC6', align: 'center', valign: 'top' }),
   });
 
   // 인용문은 원본에서 줄 수가 고정이므로(대부분 1줄, br 지정 시 2줄)
@@ -259,6 +297,45 @@ function quoteBand(sl, s, p, o) {
       ...txtOpts({ fs, bold: true, align: 'center', lsm: o.lsm || 1.15 }),
     }
   );
+}
+
+/**
+ * 산식 박스 — 얇은 테두리 안에 지표 산식을 중앙 정렬한다(13장 7회 반복).
+ * 모서리는 pill 과 같은 방식으로 둥글게 합성한다.
+ */
+function formulaBox(sl, s, p, o) {
+  const rad = Math.min(o.rad === undefined ? 10 : o.rad, p.h / 2);
+  const edge = { color: o.edge || 'D6DAE1', width: 0.75 };
+  const white = { color: C.WHITE };
+  for (const [cx, cy] of [
+    [p.x, p.y], [p.x + p.w - rad * 2, p.y],
+    [p.x, p.y + p.h - rad * 2], [p.x + p.w - rad * 2, p.y + p.h - rad * 2],
+  ]) {
+    sl.addShape(o.pres.shapes.OVAL, {
+      x: s.X(cx), y: s.Y(cy), w: s.W(rad * 2), h: s.H(rad * 2), fill: white, line: edge,
+    });
+  }
+  sl.addShape(o.pres.shapes.RECTANGLE, {
+    x: s.X(p.x + rad), y: s.Y(p.y), w: s.W(p.w - rad * 2), h: s.H(p.h), fill: white, line: edge,
+  });
+  sl.addShape(o.pres.shapes.RECTANGLE, {
+    x: s.X(p.x), y: s.Y(p.y + rad), w: s.W(p.w), h: s.H(p.h - rad * 2), fill: white, line: edge,
+  });
+  sl.addShape(o.pres.shapes.RECTANGLE, {
+    x: s.X(p.x + rad), y: s.Y(p.y + 1), w: s.W(p.w - rad * 2), h: s.H(p.h - 2),
+    fill: white, line: { type: 'none' },
+  });
+  sl.addShape(o.pres.shapes.RECTANGLE, {
+    x: s.X(p.x + 1), y: s.Y(p.y + rad), w: s.W(p.w - 2), h: s.H(p.h - rad * 2),
+    fill: white, line: { type: 'none' },
+  });
+  sl.addText(o.text, {
+    x: s.X(p.x + 2), y: s.Y(p.y), w: s.W(p.w - 4), h: s.H(p.h),
+    ...txtOpts({
+      fs: fit(o.text, o.fs, s.W(p.w - 4), true, 0.01),
+      bold: true, color: o.color || C.TXT, align: 'center',
+    }),
+  });
 }
 
 /** 최하단 ※ 각주 */
@@ -436,6 +513,6 @@ function bigNum(sl, s, p, o) {
 
 module.exports = {
   pill, panel, card, text, numBadge, goldBadge, arrowBadge,
-  runHead, chapterBadge, titleBlock, quoteBand, footnote,
+  runHead, chapterBadge, titleBlock, quoteBand, formulaBox, footnote,
   vline, hline, timeline, chevron, arrowDown, bullets, richBullets, bigNum, txtOpts,
 };

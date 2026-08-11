@@ -4,7 +4,7 @@
 원본 PDF에 텍스트 레이어가 없어 전사가 유일한 원문 경로이므로,
 content.js 의 모든 문자열이 PPTX 안에 실제로 들어갔는지 기계로 대조한다.
 
-사용: python3 verify.py [pptx경로]
+사용: python3 verify.py [pptx경로] [--ids s12,s13]
 """
 import json
 import re
@@ -17,7 +17,6 @@ from pptx import Presentation
 from pptx.util import Emu
 
 ROOT = Path(__file__).parent
-EXPECT_SLIDES = 11
 EXPECT_W_IN = 11.0
 EXPECT_H_IN = 7.3333
 MIN_SHAPES = 20        # kstat-ppt 원칙 17 — 도형 밀도
@@ -59,8 +58,9 @@ def collect_expected():
           if (typeof v === 'string') { acc.push(v); return; }
           if (Array.isArray(v)) { v.forEach(walk); return; }
           if (typeof v === 'object') {
-            // img·id·options·c 는 화면에 찍히는 글자가 아니라 서식 표시자다.
-            const META = new Set(['img', 'id', 'options', 'c']);
+            // 화면에 찍히는 글자가 아니라 서식·메타 표시자
+            const META = new Set(['img', 'id', 'options', 'c', 'accent',
+                                  'quoteStyle', 'fixes']);
             for (const k of Object.keys(v)) {
               if (META.has(k)) continue;
               walk(v[k]);
@@ -78,15 +78,22 @@ def collect_expected():
 
 
 def main():
-    path = sys.argv[1] if len(sys.argv) > 1 else str(
-        sorted((ROOT / 'out').glob('*.pptx'))[0])
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    ids = None
+    if '--ids' in sys.argv:
+        ids = sys.argv[sys.argv.index('--ids') + 1].split(',')
+    path = args[0] if args else str(sorted((ROOT / 'out').glob('*.pptx'))[0])
     prs = Presentation(path)
     fails, warns = [], []
 
+    expected = collect_expected()
+    if ids:
+        expected = [e for e in expected if e['id'] in ids]
+
     # ── ① 구조 ────────────────────────────────────────────
     n = len(prs.slides)
-    if n != EXPECT_SLIDES:
-        fails.append(f'슬라이드 수 {n} != {EXPECT_SLIDES}')
+    if n != len(expected):
+        fails.append(f'슬라이드 수 {n} != 기대 {len(expected)}')
     w_in = Emu(prs.slide_width).inches
     h_in = Emu(prs.slide_height).inches
     if abs(w_in - EXPECT_W_IN) > 0.01 or abs(h_in - EXPECT_H_IN) > 0.01:
@@ -116,7 +123,8 @@ def main():
             if pt < MIN_PT:
                 fails.append(f'슬라이드 {i}: 폰트 {pt}pt < {MIN_PT}pt')
 
-    if tables < 1:
+    # 네이티브 표는 10장 비목별 산출표에만 있다. 10장이 대상일 때만 요구한다.
+    if any(e['id'] == 's10' for e in expected) and tables < 1:
         fails.append('네이티브 표가 하나도 없음 (10장 비목별 산출표 필요)')
 
     fonts = set(re.findall(r'typeface="([^"]+)"', xml_all))
@@ -125,7 +133,6 @@ def main():
         warns.append(f'KoPub 외 폰트 사용: {sorted(stray)}')
 
     # ── ② 원문 대조 ───────────────────────────────────────
-    expected = collect_expected()
     missing_total = 0
     for i, exp in enumerate(expected):
         if i >= n:
