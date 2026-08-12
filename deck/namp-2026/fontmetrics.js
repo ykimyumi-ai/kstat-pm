@@ -6,7 +6,8 @@
  * 실제 폰트 메트릭으로 폭을 계산해 두면 넘침을 코드로 잡아낼 수 있고,
  * 자동 축소(fitFont)로 박스를 벗어나는 일을 원천 차단할 수 있다.
  *
- * 폰트가 없으면(설치되지 않은 환경) 근사 계산으로 조용히 대체한다.
+ * 폰트가 없으면 근사 계산으로 조용히 대체하지만, setStrict(true) 를 켜면 멈춘다.
+ * 브라우저는 TTF 대신 useTable() 로 주입받은 폭 표를 본다.
  */
 /**
  * 노드에서만 쓰는 TTF 직접 읽기 경로.
@@ -44,7 +45,7 @@ function findFont(file) {
 
 /** 최소한의 TTF 파서 — cmap(format 4/12) 과 hmtx 만 읽는다. */
 function parseTTF(path) {
-  const b = fs.readFileSync(path);
+  const b = nodeFs().readFileSync(path);
   const numTables = b.readUInt16BE(4);
   const tables = {};
   for (let i = 0; i < numTables; i++) {
@@ -144,7 +145,19 @@ function load(bold) {
  */
 let TABLE = null;
 let RANGE_FLAT = null;
+let STRICT = false;
 const ADV_CACHE = new Map();
+
+/**
+ * 폰트를 못 찾았을 때 조용히 근사로 넘어가는 것을 막는다.
+ *
+ * 근사 경로는 폭이 최대 70% 어긋나고, 그러면 helpers 의 fit()/fitBox() 가 고르는
+ * 글자 크기가 달라져 **미리보기가 아니라 내려받은 PPTX 자체가 CLI 산출물과
+ * 달라진다.** 브라우저는 표 주입에 실패하면 조용히 틀리느니 멈추는 편이 낫다.
+ */
+function setStrict(v) {
+  STRICT = !!v;
+}
 
 function useTable(t) {
   TABLE = t;
@@ -213,6 +226,9 @@ function widthIn(str, fontSize, bold) {
   }
   const f = load(bold);
   if (!f) {
+    if (STRICT) {
+      throw new Error('fontmetrics: 폰트 폭 표가 없다 — 근사로 넘어가면 산출물이 CLI 와 달라진다');
+    }
     // 폰트를 못 찾은 경우: 한글 0.95em, 그 외 0.5em 으로 근사
     let u = 0;
     for (const ch of str) u += isCJK(ch) ? 0.95 : 0.5;
@@ -264,4 +280,4 @@ function lineCount(str, fontSize, boxWidthIn, bold) {
   return n;
 }
 
-module.exports = { widthIn, fitFont, lineCount, load, useTable };
+module.exports = { widthIn, fitFont, lineCount, load, useTable, setStrict };

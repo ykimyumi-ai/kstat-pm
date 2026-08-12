@@ -28,6 +28,7 @@ async function init(opts) {
   const res = await fetch(o.metricsUrl || 'fonts/metrics.json');
   if (!res.ok) throw new Error(`폰트 폭 표를 불러오지 못했다 (${res.status})`);
   FM.useTable(await res.json());
+  FM.setStrict(true);   // 표가 없으면 조용히 근사하지 말고 멈춘다
   H.setAssetBase(o.assetBase || '../assets');
   ready = true;
 }

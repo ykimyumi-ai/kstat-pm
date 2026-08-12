@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>제안서 원문 편집기</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #14161a; --panel: #1c1f25; --line: #2a2e36;
+    --txt: #e8eaed; --dim: #9aa0aa; --navy: #4a7fd4; --gold: #d0a544;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--txt);
+    font: 14px/1.6 -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  }
+  header {
+    padding: 14px 20px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 16px;
+  }
+  h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  .dim { color: var(--dim); font-size: 13px; }
+  main { padding: 20px; max-width: 780px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 16px; margin-bottom: 12px;
+  }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  button {
+    background: var(--navy); color: #fff; border: 0; border-radius: 6px;
+    padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  button:disabled { background: #3a3f47; color: var(--dim); cursor: default; }
+  #log {
+    margin-top: 16px; padding: 12px; background: #0f1114;
+    border: 1px solid var(--line); border-radius: 6px;
+    font: 12px/1.7 ui-monospace, monospace; white-space: pre-wrap; color: var(--dim);
+    min-height: 60px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>2026 납품대금 연동제 제안서 — 원문 편집기</h1>
+  <span class="dim" id="status">불러오는 중…</span>
+</header>
+<main>
+  <div id="presets"></div>
+  <div id="log"></div>
+</main>
+
+<script src="vendor/pptxgen.bundle.js"></script>
+<script src="bundle.js"></script>
+<script>
+(function () {
+  var log = document.getElementById('log');
+  var statusEl = document.getElementById('status');
+  function say(msg) { log.textContent += msg + '\n'; }
+
+  Deck.init({ metricsUrl: 'fonts/metrics.json', assetBase: 'assets' })
+    .then(function () { return Deck.loadContent('api/content'); })
+    .then(function (payload) {
+      var content = payload.content;
+      statusEl.textContent = content.length + '장 · 저장본 ' + payload.version;
+      var box = document.getElementById('presets');
+      Deck.PRESETS.forEach(function (p) {
+        var el = document.createElement('div');
+        el.className = 'card row';
+        el.innerHTML = '<div><div>' + p.label + '</div>'
+          + '<div class="dim">' + p.ids.join(' ') + '</div></div>';
+        var b = document.createElement('button');
+        b.textContent = 'PPTX 내려받기';
+        b.onclick = function () {
+          b.disabled = true;
+          var t0 = performance.now();
+          Deck.download(content, p.ids, p.file).then(function (size) {
+            say(p.file + '  ' + Math.round(size / 1024) + 'KB  '
+              + Math.round(performance.now() - t0) + 'ms');
+            b.disabled = false;
+          }).catch(function (e) {
+            say('실패: ' + (e && e.message ? e.message : e));
+            b.disabled = false;
+          });
+        };
+        el.appendChild(b);
+        box.appendChild(el);
+      });
+      say('준비 완료. 폰트 폭 표와 원문을 불러왔다.');
+    })
+    .catch(function (e) {
+      statusEl.textContent = '오류';
+      say('초기화 실패: ' + (e && e.message ? e.message : e));
+    });
+}());
+</script>
+</body>
+</html>

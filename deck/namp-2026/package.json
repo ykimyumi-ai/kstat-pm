@@ -16,7 +16,9 @@
     "metrics": "node tools/gen-metrics.js",
     "metrics:check": "node tools/check-metrics.js",
     "verify": "python3 verify.py",
-    "render": "bash tools/render.sh /tmp/namp-render"
+    "render": "bash tools/render.sh /tmp/namp-render",
+    "serve": "node web/server.js",
+    "parity": "node tools/parity.js"
   },
   "dependencies": {
     "pptxgenjs": "^4.0.1"

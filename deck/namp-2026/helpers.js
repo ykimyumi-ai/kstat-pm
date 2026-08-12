@@ -391,6 +391,9 @@ function setAssetBase(base) {
 
 function image(sl, s, p, o) {
   sl.addImage({
+    // altText 를 주지 않으면 pptxgenjs 가 소스 경로를 그대로 descr 에 박는다.
+    // 그러면 납품 파일에 빌드한 사람의 절대 경로가 남고, CLI 와 웹 산출물도 갈린다.
+    altText: o.name,
     path: `${ASSET_BASE}/${o.name}.png`,
     x: s.X(p.x), y: s.Y(p.y), w: s.W(p.w), h: s.H(p.h),
   });
