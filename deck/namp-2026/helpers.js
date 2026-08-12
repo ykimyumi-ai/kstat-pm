@@ -380,9 +380,18 @@ function formulaBox(sl, s, p, o) {
  * 사진은 도형으로 재현할 수 없어 원본 크롭을 그대로 얹는다.
  * 크롭에 pill 픽셀이 함께 들어간 경우가 있어 pill 을 그린 뒤에 호출해야 한다.
  */
+// 사진·아이콘이 있는 위치. 노드는 파일 경로, 브라우저는 URL 을 쓴다.
+// (typeof 로 감싸는 이유: 번들된 브라우저 코드에는 __dirname 이 없다)
+let ASSET_BASE = typeof __dirname === 'string' ? `${__dirname}/assets` : 'assets';
+
+/** 브라우저에서 assets 위치를 갈아끼운다. */
+function setAssetBase(base) {
+  ASSET_BASE = base;
+}
+
 function image(sl, s, p, o) {
   sl.addImage({
-    path: `${__dirname}/assets/${o.name}.png`,
+    path: `${ASSET_BASE}/${o.name}.png`,
     x: s.X(p.x), y: s.Y(p.y), w: s.W(p.w), h: s.H(p.h),
   });
 }
@@ -641,6 +650,6 @@ function dline(sl, s, p, o) {
 module.exports = {
   pill, panel, card, text, numBadge, goldBadge, arrowBadge,
   runHead, chapterBadge, titleBlock, quoteBand, formulaBox, footnote,
-  image, accentCard, bandBar, roundRect, dline,
+  image, setAssetBase, accentCard, bandBar, roundRect, dline,
   vline, hline, timeline, chevron, arrowDown, bullets, richBullets, bigNum, txtOpts,
 };

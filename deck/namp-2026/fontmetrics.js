@@ -8,16 +8,34 @@
  *
  * 폰트가 없으면(설치되지 않은 환경) 근사 계산으로 조용히 대체한다.
  */
-const fs = require('fs');
-
-const CANDIDATE_DIRS = [
-  '/usr/share/fonts/truetype/kopub',
-  `${__dirname}/node_modules/font-kopub/fonts`,
-  '/tmp/fontpkg/node_modules/font-kopub/fonts',
-];
+/**
+ * 노드에서만 쓰는 TTF 직접 읽기 경로.
+ *
+ * 브라우저 번들에서는 여기까지 오지 않는다(useTable 로 표를 주입받는다). 다만
+ * `require('fs')` 를 최상위에 두면 번들이 로드되는 순간 터지므로 지연시킨다.
+ */
+let _fs;
+function nodeFs() {
+  if (_fs === undefined) {
+    try {
+      _fs = require('fs');
+    } catch (e) {
+      _fs = null;
+    }
+  }
+  return _fs;
+}
 
 function findFont(file) {
-  for (const d of CANDIDATE_DIRS) {
+  const fs = nodeFs();
+  if (!fs) return null;
+  const here = typeof __dirname === 'string' ? __dirname : '.';
+  const dirs = [
+    '/usr/share/fonts/truetype/kopub',
+    `${here}/node_modules/font-kopub/fonts`,
+    '/tmp/fontpkg/node_modules/font-kopub/fonts',
+  ];
+  for (const d of dirs) {
     const p = `${d}/${file}`;
     if (fs.existsSync(p)) return p;
   }

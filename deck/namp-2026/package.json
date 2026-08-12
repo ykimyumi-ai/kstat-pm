@@ -4,22 +4,25 @@
   "private": true,
   "description": "2026 납품대금 연동제 실태조사 제안서(발췌 11장) 편집 가능 PPTX 생성기",
   "scripts": {
-    "build": "node build.js --only 1,2,3,4,5,6,7,8,9,10,11",
-    "build:energy": "OUT_NAME=2026_납품대금연동제_에너지경비_작동지표_2p.pptx node build.js --only 12,13",
-    "verify": "python3 verify.py",
-    "render": "bash tools/render.sh /tmp/namp-render",
-    "build:matrix": "OUT_NAME=2026_납품대금연동제_업종별밀도_응답난이도_3p.pptx node build.js --only 14,15,16",
-    "build:roadmap": "OUT_NAME=2026_납품대금연동제_판별조사_2027승인연계_1p.pptx node build.js --only 17",
-    "build:outcome": "OUT_NAME=2026_납품대금연동제_기대성과활용_투입체계_2p.pptx node build.js --only 18,19",
-    "build:extra": "OUT_NAME=2026_납품대금연동제_추가제안4종_1p.pptx node build.js --only 20",
-    "build:search": "OUT_NAME=2026_납품대금연동제_적용대상탐색비용_1p.pptx node build.js --only 21",
+    "build": "node build.js --preset full",
+    "build:energy": "node build.js --preset energy",
+    "build:matrix": "node build.js --preset matrix",
+    "build:roadmap": "node build.js --preset roadmap",
+    "build:outcome": "node build.js --preset outcome",
+    "build:extra": "node build.js --preset extra",
+    "build:search": "node build.js --preset search",
+    "build:all": "for k in full energy matrix roadmap outcome extra search; do node build.js --preset $k; done",
+    "build:web": "esbuild web/deck.js --bundle --format=iife --global-name=Deck --external:pptxgenjs --outfile=web/bundle.js --log-level=warning",
     "metrics": "node tools/gen-metrics.js",
-    "metrics:check": "node tools/check-metrics.js"
+    "metrics:check": "node tools/check-metrics.js",
+    "verify": "python3 verify.py",
+    "render": "bash tools/render.sh /tmp/namp-render"
   },
   "dependencies": {
     "pptxgenjs": "^4.0.1"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "font-kopub": "^1.0.2"
   }
 }

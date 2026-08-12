@@ -50,28 +50,13 @@ def slide_text(slide):
 
 def collect_expected():
     """content.js 를 node로 읽어 슬라이드별 기대 문자열을 뽑는다."""
+    # 화면 글자와 메타를 가르는 규칙은 fieldkinds.js 한 곳에 있다.
+    # 웹 편집기도 같은 모듈을 쓰므로 두 쪽의 판정이 갈리지 않는다.
     js = r'''
       const c = require('./content');
-      const out = c.map(d => {
-        const acc = [];
-        const walk = (v) => {
-          if (v == null) return;
-          if (typeof v === 'string') { acc.push(v); return; }
-          if (Array.isArray(v)) { v.forEach(walk); return; }
-          if (typeof v === 'object') {
-            // 화면에 찍히는 글자가 아니라 서식·메타 표시자
-            const META = new Set(['img', 'img2', 'icon', 'id', 'options', 'c',
-                                  'accent', 'tone', 'tint', 'photo', 'quoteStyle', 'fixes']);
-            for (const k of Object.keys(v)) {
-              if (META.has(k)) continue;
-              walk(v[k]);
-            }
-          }
-        };
-        walk(d);
-        return { id: d.id, strings: acc };
-      });
-      process.stdout.write(JSON.stringify(out));
+      const { displayStrings } = require('./fieldkinds');
+      process.stdout.write(JSON.stringify(
+        c.map(d => ({ id: d.id, strings: displayStrings(d) }))));
     '''
     r = subprocess.run(['node', '-e', js], cwd=ROOT, capture_output=True, text=True)
     r.check_returncode()
