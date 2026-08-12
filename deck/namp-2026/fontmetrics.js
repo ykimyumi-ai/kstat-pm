@@ -116,6 +116,55 @@ function load(bold) {
   return FONTS[key];
 }
 
+/**
+ * 브라우저용 폭 표 주입.
+ *
+ * 브라우저에는 fs 가 없고 TTF 는 한 벌에 3.1MB 라 보내기 어렵다. 대신
+ * `tools/gen-metrics.js` 가 만든 압축 표(48KB)를 주입하면 아래 widthIn 이
+ * TTF 대신 그 표를 본다. 노드 경로(load/parseTTF)는 그대로 둔다 —
+ * CLI 와 웹이 같은 수를 내야 하므로 표는 TTF 에서 기계로 뽑은 것이다.
+ */
+let TABLE = null;
+let RANGE_FLAT = null;
+const ADV_CACHE = new Map();
+
+function useTable(t) {
+  TABLE = t;
+  // [시작,끝] 쌍을 평탄화해 이진 탐색에 쓴다
+  RANGE_FLAT = t ? t.ranges.reduce((a, [s, e]) => (a.push(s, e), a), []) : null;
+  ADV_CACHE.clear();
+}
+
+/** 코드포인트가 폰트 cmap 에 있는가 (구간 목록 이진 탐색) */
+function inFont(cp) {
+  const r = RANGE_FLAT;
+  let lo = 0, hi = r.length / 2 - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (cp < r[mid * 2]) hi = mid - 1;
+    else if (cp > r[mid * 2 + 1]) lo = mid + 1;
+    else return true;
+  }
+  return false;
+}
+
+/** 표에서 글자 하나의 advance(폰트 단위)를 얻는다. 노드의 TTF 조회와 결과가 같다. */
+function tableAdvance(cp, bold) {
+  const key = bold ? -cp : cp;
+  const hit = ADV_CACHE.get(key);
+  if (hit !== undefined) return hit;
+  const t = TABLE;
+  let a;
+  // Bold 예외가 먼저다 — 좋·찧 는 한글 음절인데도 Bold 에서 폭이 다르다
+  if (bold && t.boldAdv[cp] !== undefined) a = t.boldAdv[cp];
+  else if (cp >= t.hangul[0] && cp <= t.hangul[1]) a = t.hangulAdv;
+  else if (t.adv[cp] !== undefined) a = t.adv[cp];
+  else if (inFont(cp)) a = t.defaultAdv;
+  else a = bold ? t.lastAdv.bold : t.lastAdv.medium;
+  ADV_CACHE.set(key, a);
+  return a;
+}
+
 const isCJK = (ch) => /[ᄀ-ᇿ　-〿㄰-㆏가-힯一-鿿＀-￯]/.test(ch);
 // 렌더러는 한글이 아닌 인쇄 가능 문자를 모두 '서양 문자'로 보고 간격을 넣는다.
 // ASCII 뿐 아니라 중점(·)·따옴표(‘ ’)·물결(~) 등도 포함된다.
@@ -138,8 +187,13 @@ function boundaryEm(str) {
 
 /** 문자열의 폭을 인치로 반환한다. fontSize 는 pt. */
 function widthIn(str, fontSize, bold) {
-  const f = load(bold);
   const em = fontSize / 72; // 인치
+  if (TABLE) {
+    let u = 0;
+    for (const ch of str) u += tableAdvance(ch.codePointAt(0), bold);
+    return (u / TABLE.unitsPerEm + boundaryEm(str)) * em;
+  }
+  const f = load(bold);
   if (!f) {
     // 폰트를 못 찾은 경우: 한글 0.95em, 그 외 0.5em 으로 근사
     let u = 0;
@@ -192,4 +246,4 @@ function lineCount(str, fontSize, boxWidthIn, bold) {
   return n;
 }
 
-module.exports = { widthIn, fitFont, lineCount, load };
+module.exports = { widthIn, fitFont, lineCount, load, useTable };
