@@ -13,6 +13,7 @@ const path = require('path');
 const PptxGenJS = require('pptxgenjs');
 const { SLIDE_W, SLIDE_H, C, scaler } = require('./theme');
 const content = require('./content');
+const slides = require('./slides');
 
 const OUT_DIR = path.join(__dirname, 'out');
 
@@ -35,7 +36,7 @@ pres.title = '2026 납품대금 연동제 실태조사 제안서';
 
 content.forEach((data, i) => {
   if (only && !only.includes(i + 1)) return;
-  const draw = require(`./slides/${data.id}`);
+  const draw = slides[data.id];
   const s = scaler(data.img[0], data.img[1]);
   const sl = pres.addSlide();
   sl.background = { color: C.WHITE };
