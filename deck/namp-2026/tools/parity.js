@@ -45,10 +45,16 @@ async function main() {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'parity-'));
   const srv = spawn('node', [path.join(ROOT, 'web', 'server.js')],
     { cwd: ROOT, env: Object.assign({}, process.env, { PORT: String(PORT) }), stdio: 'pipe' });
+  // 검사가 중간에 실패해도 서버가 남지 않게 한다 (남으면 다음 실행이 포트 충돌로 죽는다)
+  const stop = () => { try { srv.kill(); } catch (e) { /* 이미 죽음 */ } };
+  process.on('exit', stop);
+  process.on('uncaughtException', (e) => { stop(); console.error(e); process.exit(1); });
   await new Promise((res, rej) => {
-    srv.stdout.on('data', (d) => String(d).includes('편집기') && res());
-    srv.stderr.on('data', (d) => rej(new Error(String(d))));
-    setTimeout(() => rej(new Error('서버가 뜨지 않았다')), 8000);
+    let log = '';
+    srv.stdout.on('data', (d) => { log += d; if (String(d).includes('편집기')) res(); });
+    srv.stderr.on('data', (d) => { log += d; });
+    srv.on('exit', (c) => rej(new Error(`서버가 종료됐다 (코드 ${c})\n${log.trim()}`)));
+    setTimeout(() => rej(new Error(`서버가 뜨지 않았다\n${log.trim()}`)), 8000);
   });
 
   const browser = await chromium.launch({ executablePath: CHROMIUM });
@@ -61,7 +67,9 @@ async function main() {
   });
 
   await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
-  await page.waitForFunction('window.Deck && document.getElementById("presets").children.length > 0',
+  // 편집기가 완전히 준비되면 폼에 입력칸이 생긴다
+  await page.waitForFunction(
+    'window.Deck && document.querySelectorAll("#form textarea").length > 0',
     null, { timeout: 20000 });
 
   let fails = 0;
@@ -120,4 +128,4 @@ async function main() {
   process.exit(fails === 0 && errors.length === 0 ? 0 : 1);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => { console.error(e.message || e); process.exit(1); });

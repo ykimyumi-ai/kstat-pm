@@ -8,7 +8,7 @@
  *   node web/server.js            → http://0.0.0.0:8080
  *   PORT=9000 node web/server.js
  *
- * 사내망 전제라 인증은 두지 않는다. 편집자 이름만 헤더로 받아 이력에 남긴다.
+ * 사내망 전제라 인증은 두지 않는다. 편집자 이름만 받아 저장 이력에 남긴다.
  */
 const http = require('http');
 const fs = require('fs');
@@ -166,7 +166,9 @@ function putContent(req, res) {
     }
 
     const json = `${JSON.stringify(body.content, null, 2)}\n`;
-    const editor = (req.headers['x-editor'] || 'unknown').toString().replace(/[^\w가-힣.-]/g, '');
+    // 편집자 이름은 헤더가 아니라 본문으로 받는다 —
+    // HTTP 헤더는 ISO-8859-1 만 허용해서 한글 이름이면 브라우저가 fetch 를 거부한다.
+    const editor = String(body.editor || 'unknown').replace(/[^\w가-힣.-]/g, '').slice(0, 40) || 'unknown';
     fs.mkdirSync(HISTORY, { recursive: true });
     fs.writeFileSync(path.join(HISTORY, `${new Date().toISOString().replace(/[:.]/g, '-')}-${editor}.json`), cur);
 
@@ -208,7 +210,9 @@ function bundleStale() {
   const bundle = path.join(WEB, 'bundle.js');
   if (!fs.existsSync(bundle)) return 'web/bundle.js 가 없다';
   const t = fs.statSync(bundle).mtimeMs;
-  const srcs = ['theme.js', 'helpers.js', 'fontmetrics.js', 'fieldkinds.js', 'content.json']
+  // content.json 은 넣지 않는다 — 번들에 들어가지 않고 실행 중 /api/content 로 받는다.
+  // 넣으면 저장할 때마다 번들이 낡은 것으로 오인돼 다음 기동이 막힌다.
+  const srcs = ['theme.js', 'helpers.js', 'fontmetrics.js', 'fieldkinds.js']
     .map((f) => path.join(ROOT, f))
     .concat(fs.readdirSync(path.join(ROOT, 'slides')).map((f) => path.join(ROOT, 'slides', f)))
     .concat([path.join(WEB, 'deck.js'), path.join(WEB, 'presets.json')]);

@@ -5200,7 +5200,7 @@ var Deck = (() => {
       var FM = require_fontmetrics();
       var IN2PX = 96;
       var LINE_FACTOR = 1.18;
-      var BULLET_INDENT = 0.32;
+      var BULLET_INDENT = 0.22;
       var esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
       var num = (v) => Number.isFinite(v) ? v : 0;
       var px = (v) => Math.round(num(v) * IN2PX * 100) / 100;
@@ -5383,7 +5383,19 @@ var Deck = (() => {
           });
           usedH += (p.spaceAfter || 0) / 72;
         });
-        return { lines, usedH, boxW, boxH, overflow: usedH > boxH + 1e-9 };
+        const lh0 = lines.length ? lines[0].lh : 1;
+        const maxLines = Math.max(1, Math.floor((boxH + lh0 * 0.35) / lh0));
+        return {
+          lines,
+          usedH,
+          boxW,
+          boxH,
+          nLines: lines.length,
+          maxLines,
+          overflow: lines.length > maxLines,
+          // 10pt 하한까지 줄어든 글자는 더 늘리면 바로 넘친다 — 부드러운 신호
+          atFloor: lines.some((l) => l.fs <= 10)
+        };
       }
       function textSvg(op, warn) {
         const o = op.o;
@@ -5407,21 +5419,29 @@ var Deck = (() => {
             out.push(`<text x="${px(x)}" y="${px(by)}" font-size="${ln.fs}pt" fill="#${ln.runs[0] && ln.runs[0].color || "1A1A1A"}">&#8226;</text>`);
           }
           if (ln.multi) {
-            let rx = lx;
+            let prefix = "";
+            let prevW = 0;
             ln.runs.forEach((r) => {
               if (!r.text) return;
-              const rw = FM.widthIn(r.text, r.fs, r.bold);
-              out.push(`<text x="${px(rx)}" y="${px(by)}" font-size="${r.fs}pt" font-weight="${r.bold ? 700 : 400}" fill="#${r.color || "1A1A1A"}" textLength="${px(rw)}" lengthAdjust="spacing">${esc(r.text)}</text>`);
-              rx += rw;
+              const nextW = FM.widthIn(prefix + r.text, r.fs, r.bold);
+              const rw = nextW - prevW;
+              out.push(`<text x="${px(lx + prevW)}" y="${px(by)}" font-size="${r.fs}pt" font-weight="${r.bold ? 700 : 400}" fill="#${r.color || "1A1A1A"}" xml:space="preserve" textLength="${px(Math.max(rw, 1e-3))}" lengthAdjust="spacing">${esc(r.text)}</text>`);
+              prefix += r.text;
+              prevW = nextW;
             });
           } else {
             const color = ln.runs[0] && ln.runs[0].color || "1A1A1A";
-            out.push(`<text x="${px(lx)}" y="${px(by)}" font-size="${ln.fs}pt" font-weight="${bold ? 700 : 400}" fill="#${color}" textLength="${px(wIn)}" lengthAdjust="spacing">${esc(ln.text)}</text>`);
+            out.push(`<text x="${px(lx)}" y="${px(by)}" font-size="${ln.fs}pt" font-weight="${bold ? 700 : 400}" fill="#${color}" xml:space="preserve" textLength="${px(wIn)}" lengthAdjust="spacing">${esc(ln.text)}</text>`);
           }
           cy += ln.lh;
         });
         if (L.overflow && warn) {
-          warn.push({ text: L.lines.map((l) => l.text).join(" ").slice(0, 40), usedH: L.usedH, boxH: L.boxH });
+          warn.push({
+            text: L.lines.map((l) => l.text).join(" ").slice(0, 40),
+            nLines: L.nLines,
+            maxLines: L.maxLines,
+            atFloor: L.atFloor
+          });
           out.push(`<rect x="${px(x)}" y="${px(y)}" width="${px(L.boxW)}" height="${px(L.boxH)}" fill="none" stroke="#ff4444" stroke-width="1.5" stroke-dasharray="4 3"/>`);
         }
         return out.join("");
@@ -5493,6 +5513,77 @@ var Deck = (() => {
     }
   });
 
+  // fieldkinds.js
+  var require_fieldkinds = __commonJS({
+    "fieldkinds.js"(exports, module) {
+      "use strict";
+      var ALWAYS_META = /* @__PURE__ */ new Set(["id", "options", "fixes"]);
+      var PALETTE_KEYS = /* @__PURE__ */ new Set(["tone", "accent", "tint", "c"]);
+      var ASSET_KEYS = /* @__PURE__ */ new Set(["photo", "icon", "img2"]);
+      var PALETTE_VALUE = new RegExp(
+        "^(NAVY|NAVY_DEEP|NAVY_LINE|BLUE|BLUE_TXT|BLUE_PALE|GOLD|GOLD_DEEP|SKY|DARK|CREAM|PANEL|ROW_ALT|CARD|LINE|GRAY|GRAY_DARK|TXT|TXT_MID|TXT_SUB|WHITE)$|^[0-9A-Fa-f]{6}$"
+      );
+      var ASSET_VALUE = /^s\d{2}-[a-z0-9-]+$/;
+      function isMeta(key, value) {
+        if (ALWAYS_META.has(key)) return true;
+        if (key === "img") {
+          if (Array.isArray(value)) {
+            return value.length === 2 && value.every((n) => typeof n === "number");
+          }
+          return typeof value === "string" && ASSET_VALUE.test(value);
+        }
+        if (key === "quoteStyle") return value === "box";
+        if (PALETTE_KEYS.has(key)) {
+          return typeof value === "string" && PALETTE_VALUE.test(value);
+        }
+        if (ASSET_KEYS.has(key)) {
+          return typeof value === "string" && ASSET_VALUE.test(value);
+        }
+        return false;
+      }
+      function displayStrings(node, out) {
+        const acc = out || [];
+        if (node === null || node === void 0) return acc;
+        if (typeof node === "string") {
+          acc.push(node);
+          return acc;
+        }
+        if (Array.isArray(node)) {
+          node.forEach((v) => displayStrings(v, acc));
+          return acc;
+        }
+        if (typeof node === "object") {
+          for (const k of Object.keys(node)) {
+            if (isMeta(k, node[k])) continue;
+            displayStrings(node[k], acc);
+          }
+        }
+        return acc;
+      }
+      function displayFields(node, out, path) {
+        const acc = out || [];
+        const p = path || [];
+        if (node === null || node === void 0) return acc;
+        if (typeof node === "string") {
+          acc.push({ path: p, value: node });
+          return acc;
+        }
+        if (Array.isArray(node)) {
+          node.forEach((v, i) => displayFields(v, acc, p.concat(i)));
+          return acc;
+        }
+        if (typeof node === "object") {
+          for (const k of Object.keys(node)) {
+            if (isMeta(k, node[k])) continue;
+            displayFields(node[k], acc, p.concat(k));
+          }
+        }
+        return acc;
+      }
+      module.exports = { isMeta, displayStrings, displayFields };
+    }
+  });
+
   // web/deck.js
   var require_deck = __commonJS({
     "web/deck.js"(exports, module) {
@@ -5502,6 +5593,7 @@ var Deck = (() => {
       var slides = require_slides();
       var PRESETS = require_presets();
       var SVG = require_svgpres();
+      var fieldkinds = require_fieldkinds();
       var ready = false;
       var assetBase = "assets";
       async function init(opts) {
@@ -5576,6 +5668,7 @@ var Deck = (() => {
         pick,
         renderSlideSvg,
         SVG,
+        fieldkinds,
         PRESETS,
         SLIDE_W,
         SLIDE_H,

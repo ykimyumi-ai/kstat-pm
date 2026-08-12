@@ -17,6 +17,7 @@ const slides = require('../slides');
 
 const PRESETS = require('./presets.json');
 const SVG = require('./svgpres');
+const fieldkinds = require('../fieldkinds');
 
 let ready = false;
 let assetBase = 'assets';
@@ -110,6 +111,6 @@ function renderSlideSvg(entry, opts) {
 }
 
 module.exports = {
-  init, loadContent, buildPptx, download, drawSlide, pick, renderSlideSvg, SVG,
+  init, loadContent, buildPptx, download, drawSlide, pick, renderSlideSvg, SVG, fieldkinds,
   PRESETS, SLIDE_W, SLIDE_H, C, scaler, FM, H, slides,
 };
