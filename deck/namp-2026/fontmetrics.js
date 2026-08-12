@@ -259,25 +259,34 @@ function fitFont(str, fontSize, boxWidthIn, bold, minPt) {
   return Math.max(fs2, min);
 }
 
-/** 지정 폭에서 줄바꿈했을 때 필요한 줄 수 */
-function lineCount(str, fontSize, boxWidthIn, bold) {
-  let n = 0;
+/**
+ * 지정 폭에서 줄바꿈했을 때 실제로 나오는 줄들.
+ *
+ * 미리보기가 이 함수를 그대로 써야 "빌더가 가정한 줄바꿈"과 화면이 일치한다.
+ * lineCount 도 이 결과의 길이를 쓴다 — 구현이 둘이면 언젠가 갈린다.
+ */
+function wrapLines(str, fontSize, boxWidthIn, bold) {
+  const out = [];
   for (const para of String(str).split('\n')) {
     const words = para.split(' ');
     let cur = '';
-    let lines = 1;
     for (const w of words) {
       const test = cur ? `${cur} ${w}` : w;
       if (widthIn(test, fontSize, bold) > boxWidthIn && cur) {
-        lines++;
+        out.push(cur);
         cur = w;
       } else {
         cur = test;
       }
     }
-    n += lines;
+    out.push(cur);
   }
-  return n;
+  return out;
 }
 
-module.exports = { widthIn, fitFont, lineCount, load, useTable, setStrict };
+/** 지정 폭에서 줄바꿈했을 때 필요한 줄 수 */
+function lineCount(str, fontSize, boxWidthIn, bold) {
+  return wrapLines(str, fontSize, boxWidthIn, bold).length;
+}
+
+module.exports = { widthIn, fitFont, lineCount, wrapLines, load, useTable, setStrict };

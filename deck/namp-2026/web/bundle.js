@@ -288,26 +288,28 @@ var Deck = (() => {
         }
         return Math.max(fs2, min);
       }
-      function lineCount(str, fontSize, boxWidthIn, bold) {
-        let n = 0;
+      function wrapLines(str, fontSize, boxWidthIn, bold) {
+        const out = [];
         for (const para of String(str).split("\n")) {
           const words = para.split(" ");
           let cur = "";
-          let lines = 1;
           for (const w of words) {
             const test = cur ? `${cur} ${w}` : w;
             if (widthIn(test, fontSize, bold) > boxWidthIn && cur) {
-              lines++;
+              out.push(cur);
               cur = w;
             } else {
               cur = test;
             }
           }
-          n += lines;
+          out.push(cur);
         }
-        return n;
+        return out;
       }
-      module.exports = { widthIn, fitFont, lineCount, load, useTable, setStrict };
+      function lineCount(str, fontSize, boxWidthIn, bold) {
+        return wrapLines(str, fontSize, boxWidthIn, bold).length;
+      }
+      module.exports = { widthIn, fitFont, lineCount, wrapLines, load, useTable, setStrict };
     }
   });
 
@@ -5191,6 +5193,306 @@ var Deck = (() => {
     }
   });
 
+  // web/svgpres.js
+  var require_svgpres = __commonJS({
+    "web/svgpres.js"(exports, module) {
+      "use strict";
+      var FM = require_fontmetrics();
+      var IN2PX = 96;
+      var LINE_FACTOR = 1.18;
+      var BULLET_INDENT = 0.32;
+      var esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      var num = (v) => Number.isFinite(v) ? v : 0;
+      var px = (v) => Math.round(num(v) * IN2PX * 100) / 100;
+      var SHAPES = {
+        RECTANGLE: "rect",
+        OVAL: "ellipse",
+        LINE: "line",
+        HEXAGON: "hexagon",
+        DIAMOND: "diamond",
+        PARALLELOGRAM: "parallelogram",
+        ISOSCELES_TRIANGLE: "triangle",
+        UP_ARROW: "upArrow",
+        RIGHT_ARROW: "rightArrow",
+        DOWN_ARROW: "downArrow"
+      };
+      function createRecorder() {
+        const ops = [];
+        const pres = { shapes: SHAPES };
+        const sl = {
+          set background(v) {
+            ops.push({ kind: "bg", o: v });
+          },
+          addShape(type, o) {
+            ops.push({ kind: "shape", type, o });
+          },
+          addText(t, o) {
+            ops.push({ kind: "text", t, o });
+          },
+          addImage(o) {
+            ops.push({ kind: "image", o });
+          },
+          addTable(rows, o) {
+            ops.push({ kind: "table", rows, o });
+          }
+        };
+        return { pres, sl, ops };
+      }
+      function polyPoints(type, w, h) {
+        const a = Math.min(w, h) * 0.25;
+        switch (type) {
+          case "diamond":
+            return [[w / 2, 0], [w, h / 2], [w / 2, h], [0, h / 2]];
+          case "hexagon":
+            return [[a, 0], [w - a, 0], [w, h / 2], [w - a, h], [a, h], [0, h / 2]];
+          case "parallelogram":
+            return [[a, 0], [w, 0], [w - a, h], [0, h]];
+          case "triangle":
+            return [[w / 2, 0], [w, h], [0, h]];
+          case "rightArrow":
+            return [
+              [0, h * 0.25],
+              [w * 0.5, h * 0.25],
+              [w * 0.5, 0],
+              [w, h / 2],
+              [w * 0.5, h],
+              [w * 0.5, h * 0.75],
+              [0, h * 0.75]
+            ];
+          case "downArrow":
+            return [
+              [w * 0.25, 0],
+              [w * 0.75, 0],
+              [w * 0.75, h * 0.5],
+              [w, h * 0.5],
+              [w / 2, h],
+              [0, h * 0.5],
+              [w * 0.25, h * 0.5]
+            ];
+          case "upArrow":
+            return [
+              [w / 2, 0],
+              [w, h * 0.5],
+              [w * 0.75, h * 0.5],
+              [w * 0.75, h],
+              [w * 0.25, h],
+              [w * 0.25, h * 0.5],
+              [0, h * 0.5]
+            ];
+          default:
+            return null;
+        }
+      }
+      function strokeAttrs(line) {
+        if (!line || line.type === "none" || !line.color) return 'stroke="none"';
+        const w = line.width === void 0 ? 1 : line.width;
+        let s = `stroke="#${line.color}" stroke-width="${w}"`;
+        if (line.dashType === "sysDash") s += ` stroke-dasharray="${w * 3} ${w * 2}"`;
+        else if (line.dashType === "dash") s += ` stroke-dasharray="${w * 4} ${w * 3}"`;
+        if (line.endArrowType === "triangle") s += ' marker-end="url(#arrow)"';
+        return s;
+      }
+      function fillAttr(fill) {
+        if (!fill || fill.type === "none" || !fill.color) return 'fill="none"';
+        return `fill="#${fill.color}"`;
+      }
+      function shapeSvg(op) {
+        const o = op.o;
+        const x = num(o.x), y = num(o.y), w = num(o.w), h = num(o.h);
+        const bad = ![o.x, o.y, o.w, o.h].every((v) => Number.isFinite(v));
+        const f = fillAttr(o.fill);
+        const st = strokeAttrs(o.line);
+        const tf = [];
+        if (o.rotate) tf.push(`rotate(${o.rotate}, ${px(x + w / 2)}, ${px(y + h / 2)})`);
+        if (o.flipH) tf.push(`translate(${px(2 * x + w)},0) scale(-1,1)`);
+        if (o.flipV) tf.push(`translate(0,${px(2 * y + h)}) scale(1,-1)`);
+        const t = tf.length ? ` transform="${tf.join(" ")}"` : "";
+        let body;
+        if (op.type === "rect") {
+          body = `<rect x="${px(x)}" y="${px(y)}" width="${px(w)}" height="${px(h)}" ${f} ${st}/>`;
+        } else if (op.type === "ellipse") {
+          body = `<ellipse cx="${px(x + w / 2)}" cy="${px(y + h / 2)}" rx="${px(w / 2)}" ry="${px(h / 2)}" ${f} ${st}/>`;
+        } else if (op.type === "line") {
+          body = `<line x1="${px(x)}" y1="${px(y)}" x2="${px(x + w)}" y2="${px(y + h)}" ${st}/>`;
+        } else {
+          const pts = polyPoints(op.type, w, h);
+          if (!pts) return `<!-- \uBBF8\uAD6C\uD604 \uB3C4\uD615: ${op.type} -->`;
+          const d = pts.map(([dx, dy]) => `${px(x + dx)},${px(y + dy)}`).join(" ");
+          body = `<polygon points="${d}" ${f} ${st}/>`;
+        }
+        if (bad) {
+          return `${body}<rect x="${px(x)}" y="${px(y)}" width="${px(w || 0.2)}" height="${px(h || 0.2)}" fill="none" stroke="#ff4444" stroke-width="2"/>`;
+        }
+        return body;
+      }
+      function layoutText(t, o) {
+        const boxW = num(o.w), boxH = num(o.h);
+        const baseFs = o.fontSize || 12;
+        const bold = !!o.bold;
+        const lsm = o.lineSpacingMultiple || 0.95;
+        const paras = [];
+        let cur = { runs: [], bullet: false, spaceAfter: 0 };
+        const pushPara = () => {
+          paras.push(cur);
+          cur = { runs: [], bullet: false, spaceAfter: 0 };
+        };
+        if (Array.isArray(t)) {
+          t.forEach((r) => {
+            const ro = r.options || {};
+            if (ro.bullet) cur.bullet = true;
+            if (ro.paraSpaceAfter) cur.spaceAfter = ro.paraSpaceAfter;
+            cur.runs.push({
+              text: String(r.text === void 0 ? "" : r.text),
+              fs: ro.fontSize || baseFs,
+              bold: ro.bold === void 0 ? bold : !!ro.bold,
+              color: ro.color || o.color,
+              italic: !!ro.italic,
+              sub: !!ro.subscript,
+              sup: !!ro.superscript
+            });
+            if (ro.breakLine) pushPara();
+          });
+          if (cur.runs.length) pushPara();
+        } else {
+          String(t === void 0 ? "" : t).split("\n").forEach((s) => {
+            paras.push({ runs: [{ text: s, fs: baseFs, bold, color: o.color }], bullet: false, spaceAfter: 0 });
+          });
+        }
+        const indent = paras.some((p) => p.bullet) ? BULLET_INDENT : 0;
+        const avail = Math.max(boxW - indent, 0.2);
+        const lines = [];
+        let usedH = 0;
+        paras.forEach((p) => {
+          const plain = p.runs.map((r) => r.text).join("");
+          const fsMax = Math.max(...p.runs.map((r) => r.fs));
+          const wrapped = FM.wrapLines(plain, fsMax, avail, p.runs[0] ? p.runs[0].bold : bold);
+          const lh = fsMax * lsm * LINE_FACTOR / 72;
+          wrapped.forEach((ln, i) => {
+            lines.push({
+              text: ln,
+              fs: fsMax,
+              runs: p.runs,
+              para: p,
+              bullet: p.bullet && i === 0,
+              indent,
+              lh,
+              // 한 문단이 한 줄이고 run 이 여러 개면 run 색·크기를 살려 그린다
+              multi: wrapped.length === 1 && p.runs.length > 1
+            });
+            usedH += lh;
+          });
+          usedH += (p.spaceAfter || 0) / 72;
+        });
+        return { lines, usedH, boxW, boxH, overflow: usedH > boxH + 1e-9 };
+      }
+      function textSvg(op, warn) {
+        const o = op.o;
+        const L = layoutText(op.t, o);
+        const x = num(o.x), y = num(o.y);
+        const align = o.align || "left";
+        const valign = o.valign || "middle";
+        const face = o.fontFace || "";
+        const weightFace = /Bold/.test(face);
+        let cy = y;
+        if (valign === "middle") cy += Math.max(0, (L.boxH - L.usedH) / 2);
+        const out = [];
+        L.lines.forEach((ln) => {
+          const bold = ln.runs[0] ? ln.runs[0].bold === void 0 ? weightFace : ln.runs[0].bold : weightFace;
+          const wIn = FM.widthIn(ln.text, ln.fs, bold);
+          let lx = x + ln.indent;
+          if (align === "center") lx = x + (L.boxW - wIn) / 2;
+          else if (align === "right") lx = x + L.boxW - wIn;
+          const by = cy + ln.lh * 0.5 + ln.fs / 72 * 0.34;
+          if (ln.bullet) {
+            out.push(`<text x="${px(x)}" y="${px(by)}" font-size="${ln.fs}pt" fill="#${ln.runs[0] && ln.runs[0].color || "1A1A1A"}">&#8226;</text>`);
+          }
+          if (ln.multi) {
+            let rx = lx;
+            ln.runs.forEach((r) => {
+              if (!r.text) return;
+              const rw = FM.widthIn(r.text, r.fs, r.bold);
+              out.push(`<text x="${px(rx)}" y="${px(by)}" font-size="${r.fs}pt" font-weight="${r.bold ? 700 : 400}" fill="#${r.color || "1A1A1A"}" textLength="${px(rw)}" lengthAdjust="spacing">${esc(r.text)}</text>`);
+              rx += rw;
+            });
+          } else {
+            const color = ln.runs[0] && ln.runs[0].color || "1A1A1A";
+            out.push(`<text x="${px(lx)}" y="${px(by)}" font-size="${ln.fs}pt" font-weight="${bold ? 700 : 400}" fill="#${color}" textLength="${px(wIn)}" lengthAdjust="spacing">${esc(ln.text)}</text>`);
+          }
+          cy += ln.lh;
+        });
+        if (L.overflow && warn) {
+          warn.push({ text: L.lines.map((l) => l.text).join(" ").slice(0, 40), usedH: L.usedH, boxH: L.boxH });
+          out.push(`<rect x="${px(x)}" y="${px(y)}" width="${px(L.boxW)}" height="${px(L.boxH)}" fill="none" stroke="#ff4444" stroke-width="1.5" stroke-dasharray="4 3"/>`);
+        }
+        return out.join("");
+      }
+      function tableSvg(op) {
+        const o = op.o || {};
+        const x = num(o.x), y = num(o.y);
+        const colW = (o.colW || []).map(num);
+        const rowH = (o.rowH || []).map(num);
+        const out = [];
+        let ry = y;
+        op.rows.forEach((row, ri) => {
+          let rx = x;
+          const h = rowH[ri] !== void 0 ? rowH[ri] : rowH[0] || 0.3;
+          row.forEach((cell, ci) => {
+            const w = colW[ci] !== void 0 ? colW[ci] : 1;
+            const co = cell && cell.options || {};
+            out.push(`<rect x="${px(rx)}" y="${px(ry)}" width="${px(w)}" height="${px(h)}" fill="${co.fill && co.fill.color ? `#${co.fill.color}` : "none"}" stroke="#D0D4DA" stroke-width="0.5"/>`);
+            const txt = cell && cell.text !== void 0 ? String(cell.text) : String(cell || "");
+            if (txt) {
+              const fs = co.fontSize || 10;
+              const bold = !!co.bold;
+              const wIn = FM.widthIn(txt, fs, bold);
+              const al = co.align || "left";
+              const tx = al === "center" ? rx + (w - wIn) / 2 : al === "right" ? rx + w - wIn - 0.05 : rx + 0.05;
+              out.push(`<text x="${px(tx)}" y="${px(ry + h / 2 + fs / 216)}" font-size="${fs}pt" font-weight="${bold ? 700 : 400}" fill="#${co.color || "1A1A1A"}" textLength="${px(wIn)}" lengthAdjust="spacing">${esc(txt)}</text>`);
+            }
+            rx += w;
+          });
+          ry += h;
+        });
+        return out.join("");
+      }
+      function renderSVG(ops, opts) {
+        const o = opts || {};
+        const W = (o.slideW || 11) * IN2PX;
+        const H = (o.slideH || 7.3333) * IN2PX;
+        const base = o.assetBase || "assets";
+        const warnings = [];
+        const body = [];
+        let bg = "FFFFFF";
+        ops.forEach((op) => {
+          if (op.kind === "bg") {
+            bg = op.o && op.o.color || bg;
+            return;
+          }
+          if (op.kind === "shape") {
+            body.push(shapeSvg(op));
+            return;
+          }
+          if (op.kind === "text") {
+            body.push(textSvg(op, warnings));
+            return;
+          }
+          if (op.kind === "table") {
+            body.push(tableSvg(op));
+            return;
+          }
+          if (op.kind === "image") {
+            const p = op.o;
+            const name = String(p.path || "").split("/").pop();
+            body.push(`<image href="${esc(`${base}/${name}`)}" x="${px(p.x)}" y="${px(p.y)}" width="${px(p.w)}" height="${px(p.h)}" preserveAspectRatio="none"/>`);
+          }
+        });
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="KoPub\uB3CB\uC6C0\uCCB4 Medium, KoPubDotum-Medium, sans-serif"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/></marker></defs><rect width="${W}" height="${H}" fill="#${bg}"/>${body.join("")}</svg>`;
+        return { svg, warnings, opCount: ops.length };
+      }
+      module.exports = { createRecorder, renderSVG, SHAPES, IN2PX };
+    }
+  });
+
   // web/deck.js
   var require_deck = __commonJS({
     "web/deck.js"(exports, module) {
@@ -5199,14 +5501,17 @@ var Deck = (() => {
       var FM = require_fontmetrics();
       var slides = require_slides();
       var PRESETS = require_presets();
+      var SVG = require_svgpres();
       var ready = false;
+      var assetBase = "assets";
       async function init(opts) {
         const o = opts || {};
         const res = await fetch(o.metricsUrl || "fonts/metrics.json");
         if (!res.ok) throw new Error(`\uD3F0\uD2B8 \uD3ED \uD45C\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uB2E4 (${res.status})`);
         FM.useTable(await res.json());
         FM.setStrict(true);
-        H.setAssetBase(o.assetBase || "../assets");
+        assetBase = o.assetBase || "assets";
+        H.setAssetBase(assetBase);
         ready = true;
       }
       async function loadContent(url) {
@@ -5253,6 +5558,15 @@ var Deck = (() => {
         setTimeout(() => URL.revokeObjectURL(url), 1e3);
         return blob.size;
       }
+      function renderSlideSvg(entry, opts) {
+        if (!ready) throw new Error("init() \uC744 \uBA3C\uC800 \uBD88\uB7EC\uC57C \uD55C\uB2E4");
+        const rec = SVG.createRecorder();
+        drawSlide(rec.pres, rec.sl, entry);
+        return SVG.renderSVG(rec.ops, Object.assign(
+          { slideW: SLIDE_W, slideH: SLIDE_H, assetBase },
+          opts || {}
+        ));
+      }
       module.exports = {
         init,
         loadContent,
@@ -5260,6 +5574,8 @@ var Deck = (() => {
         download,
         drawSlide,
         pick,
+        renderSlideSvg,
+        SVG,
         PRESETS,
         SLIDE_W,
         SLIDE_H,

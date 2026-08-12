@@ -16,8 +16,10 @@ const FM = require('../fontmetrics');
 const slides = require('../slides');
 
 const PRESETS = require('./presets.json');
+const SVG = require('./svgpres');
 
 let ready = false;
+let assetBase = 'assets';
 
 /**
  * 폰트 폭 표와 assets 위치를 걸어 준다. 무엇이든 그리기 전에 한 번 불러야 한다.
@@ -29,7 +31,8 @@ async function init(opts) {
   if (!res.ok) throw new Error(`폰트 폭 표를 불러오지 못했다 (${res.status})`);
   FM.useTable(await res.json());
   FM.setStrict(true);   // 표가 없으면 조용히 근사하지 말고 멈춘다
-  H.setAssetBase(o.assetBase || '../assets');
+  assetBase = o.assetBase || 'assets';
+  H.setAssetBase(assetBase);
   ready = true;
 }
 
@@ -94,7 +97,19 @@ async function download(content, ids, fileName) {
   return blob.size;
 }
 
+/**
+ * 한 장을 SVG 로 그린다. PPTX 와 같은 슬라이드 코드를 태우므로 화면과 산출물이
+ * 갈리지 않는다. warnings 에는 상자를 넘친 텍스트가 담긴다.
+ */
+function renderSlideSvg(entry, opts) {
+  if (!ready) throw new Error('init() 을 먼저 불러야 한다');
+  const rec = SVG.createRecorder();
+  drawSlide(rec.pres, rec.sl, entry);
+  return SVG.renderSVG(rec.ops, Object.assign(
+    { slideW: SLIDE_W, slideH: SLIDE_H, assetBase: assetBase }, opts || {}));
+}
+
 module.exports = {
-  init, loadContent, buildPptx, download, drawSlide, pick,
+  init, loadContent, buildPptx, download, drawSlide, pick, renderSlideSvg, SVG,
   PRESETS, SLIDE_W, SLIDE_H, C, scaler, FM, H, slides,
 };
