@@ -37,6 +37,19 @@ async function init(opts) {
   ready = true;
 }
 
+/**
+ * 서버 없이 쓰는 초기화 — 폰트 폭 표와 자산을 값으로 바로 받는다.
+ * 단일 파일 데모(tools/make-demo.js)가 쓴다.
+ */
+function initInline(table, assetResolver) {
+  FM.useTable(table);
+  FM.setStrict(true);
+  assetBase = assetResolver;
+  H.setAssetBase(assetResolver);
+  ready = true;
+  return Promise.resolve();
+}
+
 /** 현재 서버에 저장된 원문을 가져온다. */
 async function loadContent(url) {
   const res = await fetch(url || 'api/content');
@@ -111,6 +124,6 @@ function renderSlideSvg(entry, opts) {
 }
 
 module.exports = {
-  init, loadContent, buildPptx, download, drawSlide, pick, renderSlideSvg, SVG, fieldkinds,
+  init, initInline, loadContent, buildPptx, download, drawSlide, pick, renderSlideSvg, SVG, fieldkinds,
   PRESETS, SLIDE_W, SLIDE_H, C, scaler, FM, H, slides,
 };

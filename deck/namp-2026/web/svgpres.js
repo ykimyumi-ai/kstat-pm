@@ -97,6 +97,7 @@ function shapeSvg(op) {
   const st = strokeAttrs(o.line);
 
   const tf = [];
+  // PowerPoint 는 도형을 경계상자 중심에서 회전한다. SVG 도 같게 맞춘다.
   if (o.rotate) tf.push(`rotate(${o.rotate}, ${px(x + w / 2)}, ${px(y + h / 2)})`);
   if (o.flipH) tf.push(`translate(${px(2 * x + w)},0) scale(-1,1)`);
   if (o.flipV) tf.push(`translate(0,${px(2 * y + h)}) scale(1,-1)`);
@@ -104,17 +105,17 @@ function shapeSvg(op) {
 
   let body;
   if (op.type === 'rect') {
-    body = `<rect x="${px(x)}" y="${px(y)}" width="${px(w)}" height="${px(h)}" ${f} ${st}/>`;
+    body = `<rect x="${px(x)}" y="${px(y)}" width="${px(w)}" height="${px(h)}" ${f} ${st}${t}/>`;
   } else if (op.type === 'ellipse') {
     body = `<ellipse cx="${px(x + w / 2)}" cy="${px(y + h / 2)}" `
-      + `rx="${px(w / 2)}" ry="${px(h / 2)}" ${f} ${st}/>`;
+      + `rx="${px(w / 2)}" ry="${px(h / 2)}" ${f} ${st}${t}/>`;
   } else if (op.type === 'line') {
-    body = `<line x1="${px(x)}" y1="${px(y)}" x2="${px(x + w)}" y2="${px(y + h)}" ${st}/>`;
+    body = `<line x1="${px(x)}" y1="${px(y)}" x2="${px(x + w)}" y2="${px(y + h)}" ${st}${t}/>`;
   } else {
     const pts = polyPoints(op.type, w, h);
     if (!pts) return `<!-- 미구현 도형: ${op.type} -->`;
     const d = pts.map(([dx, dy]) => `${px(x + dx)},${px(y + dy)}`).join(' ');
-    body = `<polygon points="${d}" ${f} ${st}/>`;
+    body = `<polygon points="${d}" ${f} ${st}${t}/>`;
   }
   if (bad) {
     // 좌표가 NaN 이면 레이아웃이 깨진 것이다. 조용히 넘기지 않는다.
@@ -171,7 +172,12 @@ function layoutText(t, o) {
   paras.forEach((p) => {
     const plain = p.runs.map((r) => r.text).join('');
     const fsMax = Math.max(...p.runs.map((r) => r.fs));
-    const wrapped = FM.wrapLines(plain, fsMax, avail, p.runs[0] ? p.runs[0].bold : bold);
+    // 크기가 섞인 문단은 통째로 큰 크기로 재면 실제보다 넓게 나와 없는 줄바꿈이
+    // 생긴다. 제 크기로 합친 폭이 들어가면 접지 않는다.
+    const mixed = p.runs.length > 1 && p.runs.some((r) => r.fs !== fsMax);
+    const wrapped = mixed && runLayout(p.runs).total <= avail
+      ? [plain]
+      : FM.wrapLines(plain, fsMax, avail, p.runs[0] ? p.runs[0].bold : bold);
     const lh = (fsMax * lsm * LINE_FACTOR) / 72;
     wrapped.forEach((ln, i) => {
       lines.push({
@@ -202,6 +208,33 @@ function layoutText(t, o) {
   };
 }
 
+/**
+ * 크기·색이 섞인 한 줄의 run 별 x 오프셋과 전체 폭.
+ *
+ * run 마다 제 크기로 재고, run 이 맞닿는 자리에 한글↔서구 간격(0.25em)을 따로 더한다.
+ * 이어 붙인 문자열을 한 크기로 재면 안 된다 — `4~5만` + 작은 `개사` 처럼 크기가
+ * 다르면 앞 run 을 작은 크기로 잰 값이 나와 폭이 음수에 가까워지고 글자가 겹친다.
+ */
+function runLayout(runs) {
+  const items = [];
+  let off = 0;
+  let prevChar = '';
+  let prevEm = 0;
+  runs.forEach((r) => {
+    if (!r.text) return;
+    const em = r.fs / 72;
+    // 경계 간격의 크기가 애매하다(두 run 의 em 이 다르다). 큰 글자 쪽에 맞춘다.
+    if (FM.isSeam(prevChar, r.text[0])) off += 0.25 * Math.max(em, prevEm);
+    const w = FM.widthIn(r.text, r.fs, r.bold);
+    items.push({ r, off, w });
+    off += w;
+    const cs = [...r.text];
+    prevChar = cs[cs.length - 1];
+    prevEm = em;
+  });
+  return { items, total: off };
+}
+
 function textSvg(op, warn) {
   const o = op.o;
   const L = layoutText(op.t, o);
@@ -217,7 +250,10 @@ function textSvg(op, warn) {
   const out = [];
   L.lines.forEach((ln) => {
     const bold = ln.runs[0] ? (ln.runs[0].bold === undefined ? weightFace : ln.runs[0].bold) : weightFace;
-    const wIn = FM.widthIn(ln.text, ln.fs, bold);
+    // 섞인 줄은 run 별 폭을 합해야 가운데가 맞는다. 가장 큰 크기로 통째로 재면
+    // 작은 run 만큼 넓게 잡혀 왼쪽으로 밀린다.
+    const rl = ln.multi ? runLayout(ln.runs) : null;
+    const wIn = rl ? rl.total : FM.widthIn(ln.text, ln.fs, bold);
     let lx = x + ln.indent;
     if (align === 'center') lx = x + (L.boxW - wIn) / 2;
     else if (align === 'right') lx = x + L.boxW - wIn;
@@ -230,24 +266,15 @@ function textSvg(op, warn) {
         + ` fill="#${(ln.runs[0] && ln.runs[0].color) || '1A1A1A'}">&#8226;</text>`);
     }
 
-    if (ln.multi) {
-      // 크기·색이 섞인 한 줄.
-      //
-      // run 폭을 따로 재서 더하면 **경계 간격이 사라진다** — 한글과 숫자가 맞닿는
-      // 곳에 렌더러가 넣는 0.25em 이 각 run 안에서만 세어지기 때문이다.
-      // 그래서 "앞 run 까지 이어 붙인 문자열"의 폭을 누적해 위치를 잡는다.
-      let prefix = '';
-      let prevW = 0;
-      ln.runs.forEach((r) => {
-        if (!r.text) return;
-        const nextW = FM.widthIn(prefix + r.text, r.fs, r.bold);
-        const rw = nextW - prevW;
-        out.push(`<text x="${px(lx + prevW)}" y="${px(by)}" font-size="${r.fs}pt"`
-          + ` font-weight="${r.bold ? 700 : 400}"`
-          + ` fill="#${r.color || '1A1A1A'}" xml:space="preserve"`
-          + ` textLength="${px(Math.max(rw, 0.001))}" lengthAdjust="spacing">${esc(r.text)}</text>`);
-        prefix += r.text;
-        prevW = nextW;
+    if (rl) {
+      rl.items.forEach((it) => {
+        // 위첨자·아래첨자는 크기를 줄이지 않는다(폭 계산이 어긋난다). 위치만 올린다.
+        const dy = it.r.sup ? -(it.r.fs / 72) * 0.35 : it.r.sub ? (it.r.fs / 72) * 0.18 : 0;
+        out.push(`<text x="${px(lx + it.off)}" y="${px(by + dy)}" font-size="${it.r.fs}pt"`
+          + ` font-weight="${it.r.bold ? 700 : 400}"`
+          + `${it.r.italic ? ' font-style="italic"' : ''}`
+          + ` fill="#${it.r.color || '1A1A1A'}" xml:space="preserve"`
+          + ` textLength="${px(Math.max(it.w, 0.001))}" lengthAdjust="spacing">${esc(it.r.text)}</text>`);
       });
     } else {
       const color = (ln.runs[0] && ln.runs[0].color) || '1A1A1A';
@@ -314,6 +341,7 @@ function renderSVG(ops, opts) {
   const W = (o.slideW || 11) * IN2PX;
   const H = (o.slideH || 7.3333) * IN2PX;
   const base = o.assetBase || 'assets';
+  void base;   // 이미지 URL 은 op 에 이미 담겨 온다 (helpers.assetUrl 이 해석)
   const warnings = [];
   const body = [];
   let bg = 'FFFFFF';
@@ -325,8 +353,9 @@ function renderSVG(ops, opts) {
     if (op.kind === 'table') { body.push(tableSvg(op)); return; }
     if (op.kind === 'image') {
       const p = op.o;
-      const name = String(p.path || '').split('/').pop();
-      body.push(`<image href="${esc(`${base}/${name}`)}" x="${px(p.x)}" y="${px(p.y)}"`
+      // path 로 왔으면 그대로, data 로 왔으면(단일 파일 데모) 그 값을 쓴다
+      const href = p.data || p.path || '';
+      body.push(`<image href="${esc(href)}" x="${px(p.x)}" y="${px(p.y)}"`
         + ` width="${px(p.w)}" height="${px(p.h)}" preserveAspectRatio="none"/>`);
     }
   });

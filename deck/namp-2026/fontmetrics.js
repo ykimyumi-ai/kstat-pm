@@ -206,13 +206,15 @@ const isWestern = (ch) => !isCJK(ch) && !/\s/.test(ch);
  * 자동으로 약 0.25em의 간격을 넣는다("아시아 어와 영어 텍스트 간격 조정").
  * 이 값을 빼고 계산하면 실제보다 좁게 나와 넘침을 놓치므로 함께 센다.
  */
+function isSeam(a, b) {
+  if (!a || !b) return false;
+  return (isCJK(a) && isWestern(b)) || (isWestern(a) && isCJK(b));
+}
+
 function boundaryEm(str) {
   let n = 0;
   const cs = [...str];
-  for (let i = 1; i < cs.length; i++) {
-    const a = cs[i - 1], b = cs[i];
-    if ((isCJK(a) && isWestern(b)) || (isWestern(a) && isCJK(b))) n++;
-  }
+  for (let i = 1; i < cs.length; i++) if (isSeam(cs[i - 1], cs[i])) n++;
   return n * 0.25;
 }
 
@@ -289,4 +291,6 @@ function lineCount(str, fontSize, boxWidthIn, bold) {
   return wrapLines(str, fontSize, boxWidthIn, bold).length;
 }
 
-module.exports = { widthIn, fitFont, lineCount, wrapLines, load, useTable, setStrict };
+module.exports = {
+  widthIn, fitFont, lineCount, wrapLines, load, useTable, setStrict, isSeam,
+};

@@ -244,13 +244,14 @@ var Deck = (() => {
       }
       var isCJK = (ch) => /[ᄀ-ᇿ　-〿㄰-㆏가-힯一-鿿＀-￯]/.test(ch);
       var isWestern = (ch) => !isCJK(ch) && !/\s/.test(ch);
+      function isSeam(a, b) {
+        if (!a || !b) return false;
+        return isCJK(a) && isWestern(b) || isWestern(a) && isCJK(b);
+      }
       function boundaryEm(str) {
         let n = 0;
         const cs = [...str];
-        for (let i = 1; i < cs.length; i++) {
-          const a = cs[i - 1], b = cs[i];
-          if (isCJK(a) && isWestern(b) || isWestern(a) && isCJK(b)) n++;
-        }
+        for (let i = 1; i < cs.length; i++) if (isSeam(cs[i - 1], cs[i])) n++;
         return n * 0.25;
       }
       function widthIn(str, fontSize, bold) {
@@ -309,7 +310,16 @@ var Deck = (() => {
       function lineCount(str, fontSize, boxWidthIn, bold) {
         return wrapLines(str, fontSize, boxWidthIn, bold).length;
       }
-      module.exports = { widthIn, fitFont, lineCount, wrapLines, load, useTable, setStrict };
+      module.exports = {
+        widthIn,
+        fitFont,
+        lineCount,
+        wrapLines,
+        load,
+        useTable,
+        setStrict,
+        isSeam
+      };
     }
   });
 
@@ -758,12 +768,17 @@ var Deck = (() => {
       function setAssetBase(base) {
         ASSET_BASE = base;
       }
+      function assetUrl(name) {
+        return typeof ASSET_BASE === "function" ? ASSET_BASE(name) : `${ASSET_BASE}/${name}.png`;
+      }
       function image(sl, s, p, o) {
+        const url = assetUrl(o.name);
+        const src = url.indexOf("data:") === 0 ? { data: url } : { path: url };
         sl.addImage({
           // altText 를 주지 않으면 pptxgenjs 가 소스 경로를 그대로 descr 에 박는다.
           // 그러면 납품 파일에 빌드한 사람의 절대 경로가 남고, CLI 와 웹 산출물도 갈린다.
           altText: o.name,
-          path: `${ASSET_BASE}/${o.name}.png`,
+          ...src,
           x: s.X(p.x),
           y: s.Y(p.y),
           w: s.W(p.w),
@@ -1086,6 +1101,7 @@ var Deck = (() => {
         footnote,
         image,
         setAssetBase,
+        assetUrl,
         accentCard,
         bandBar,
         roundRect,
@@ -5309,16 +5325,16 @@ var Deck = (() => {
         const t = tf.length ? ` transform="${tf.join(" ")}"` : "";
         let body;
         if (op.type === "rect") {
-          body = `<rect x="${px(x)}" y="${px(y)}" width="${px(w)}" height="${px(h)}" ${f} ${st}/>`;
+          body = `<rect x="${px(x)}" y="${px(y)}" width="${px(w)}" height="${px(h)}" ${f} ${st}${t}/>`;
         } else if (op.type === "ellipse") {
-          body = `<ellipse cx="${px(x + w / 2)}" cy="${px(y + h / 2)}" rx="${px(w / 2)}" ry="${px(h / 2)}" ${f} ${st}/>`;
+          body = `<ellipse cx="${px(x + w / 2)}" cy="${px(y + h / 2)}" rx="${px(w / 2)}" ry="${px(h / 2)}" ${f} ${st}${t}/>`;
         } else if (op.type === "line") {
-          body = `<line x1="${px(x)}" y1="${px(y)}" x2="${px(x + w)}" y2="${px(y + h)}" ${st}/>`;
+          body = `<line x1="${px(x)}" y1="${px(y)}" x2="${px(x + w)}" y2="${px(y + h)}" ${st}${t}/>`;
         } else {
           const pts = polyPoints(op.type, w, h);
           if (!pts) return `<!-- \uBBF8\uAD6C\uD604 \uB3C4\uD615: ${op.type} -->`;
           const d = pts.map(([dx, dy]) => `${px(x + dx)},${px(y + dy)}`).join(" ");
-          body = `<polygon points="${d}" ${f} ${st}/>`;
+          body = `<polygon points="${d}" ${f} ${st}${t}/>`;
         }
         if (bad) {
           return `${body}<rect x="${px(x)}" y="${px(y)}" width="${px(w || 0.2)}" height="${px(h || 0.2)}" fill="none" stroke="#ff4444" stroke-width="2"/>`;
@@ -5365,7 +5381,8 @@ var Deck = (() => {
         paras.forEach((p) => {
           const plain = p.runs.map((r) => r.text).join("");
           const fsMax = Math.max(...p.runs.map((r) => r.fs));
-          const wrapped = FM.wrapLines(plain, fsMax, avail, p.runs[0] ? p.runs[0].bold : bold);
+          const mixed = p.runs.length > 1 && p.runs.some((r) => r.fs !== fsMax);
+          const wrapped = mixed && runLayout(p.runs).total <= avail ? [plain] : FM.wrapLines(plain, fsMax, avail, p.runs[0] ? p.runs[0].bold : bold);
           const lh = fsMax * lsm * LINE_FACTOR / 72;
           wrapped.forEach((ln, i) => {
             lines.push({
@@ -5397,6 +5414,24 @@ var Deck = (() => {
           atFloor: lines.some((l) => l.fs <= 10)
         };
       }
+      function runLayout(runs) {
+        const items = [];
+        let off = 0;
+        let prevChar = "";
+        let prevEm = 0;
+        runs.forEach((r) => {
+          if (!r.text) return;
+          const em = r.fs / 72;
+          if (FM.isSeam(prevChar, r.text[0])) off += 0.25 * Math.max(em, prevEm);
+          const w = FM.widthIn(r.text, r.fs, r.bold);
+          items.push({ r, off, w });
+          off += w;
+          const cs = [...r.text];
+          prevChar = cs[cs.length - 1];
+          prevEm = em;
+        });
+        return { items, total: off };
+      }
       function textSvg(op, warn) {
         const o = op.o;
         const L = layoutText(op.t, o);
@@ -5410,7 +5445,8 @@ var Deck = (() => {
         const out = [];
         L.lines.forEach((ln) => {
           const bold = ln.runs[0] ? ln.runs[0].bold === void 0 ? weightFace : ln.runs[0].bold : weightFace;
-          const wIn = FM.widthIn(ln.text, ln.fs, bold);
+          const rl = ln.multi ? runLayout(ln.runs) : null;
+          const wIn = rl ? rl.total : FM.widthIn(ln.text, ln.fs, bold);
           let lx = x + ln.indent;
           if (align === "center") lx = x + (L.boxW - wIn) / 2;
           else if (align === "right") lx = x + L.boxW - wIn;
@@ -5418,16 +5454,10 @@ var Deck = (() => {
           if (ln.bullet) {
             out.push(`<text x="${px(x)}" y="${px(by)}" font-size="${ln.fs}pt" fill="#${ln.runs[0] && ln.runs[0].color || "1A1A1A"}">&#8226;</text>`);
           }
-          if (ln.multi) {
-            let prefix = "";
-            let prevW = 0;
-            ln.runs.forEach((r) => {
-              if (!r.text) return;
-              const nextW = FM.widthIn(prefix + r.text, r.fs, r.bold);
-              const rw = nextW - prevW;
-              out.push(`<text x="${px(lx + prevW)}" y="${px(by)}" font-size="${r.fs}pt" font-weight="${r.bold ? 700 : 400}" fill="#${r.color || "1A1A1A"}" xml:space="preserve" textLength="${px(Math.max(rw, 1e-3))}" lengthAdjust="spacing">${esc(r.text)}</text>`);
-              prefix += r.text;
-              prevW = nextW;
+          if (rl) {
+            rl.items.forEach((it) => {
+              const dy = it.r.sup ? -(it.r.fs / 72) * 0.35 : it.r.sub ? it.r.fs / 72 * 0.18 : 0;
+              out.push(`<text x="${px(lx + it.off)}" y="${px(by + dy)}" font-size="${it.r.fs}pt" font-weight="${it.r.bold ? 700 : 400}"${it.r.italic ? ' font-style="italic"' : ""} fill="#${it.r.color || "1A1A1A"}" xml:space="preserve" textLength="${px(Math.max(it.w, 1e-3))}" lengthAdjust="spacing">${esc(it.r.text)}</text>`);
             });
           } else {
             const color = ln.runs[0] && ln.runs[0].color || "1A1A1A";
@@ -5480,6 +5510,7 @@ var Deck = (() => {
         const W = (o.slideW || 11) * IN2PX;
         const H = (o.slideH || 7.3333) * IN2PX;
         const base = o.assetBase || "assets";
+        void base;
         const warnings = [];
         const body = [];
         let bg = "FFFFFF";
@@ -5502,8 +5533,8 @@ var Deck = (() => {
           }
           if (op.kind === "image") {
             const p = op.o;
-            const name = String(p.path || "").split("/").pop();
-            body.push(`<image href="${esc(`${base}/${name}`)}" x="${px(p.x)}" y="${px(p.y)}" width="${px(p.w)}" height="${px(p.h)}" preserveAspectRatio="none"/>`);
+            const href = p.data || p.path || "";
+            body.push(`<image href="${esc(href)}" x="${px(p.x)}" y="${px(p.y)}" width="${px(p.w)}" height="${px(p.h)}" preserveAspectRatio="none"/>`);
           }
         });
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="KoPub\uB3CB\uC6C0\uCCB4 Medium, KoPubDotum-Medium, sans-serif"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/></marker></defs><rect width="${W}" height="${H}" fill="#${bg}"/>${body.join("")}</svg>`;
@@ -5606,6 +5637,14 @@ var Deck = (() => {
         H.setAssetBase(assetBase);
         ready = true;
       }
+      function initInline(table, assetResolver) {
+        FM.useTable(table);
+        FM.setStrict(true);
+        assetBase = assetResolver;
+        H.setAssetBase(assetResolver);
+        ready = true;
+        return Promise.resolve();
+      }
       async function loadContent(url) {
         const res = await fetch(url || "api/content");
         if (!res.ok) throw new Error(`\uC6D0\uBB38\uC744 \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uB2E4 (${res.status})`);
@@ -5661,6 +5700,7 @@ var Deck = (() => {
       }
       module.exports = {
         init,
+        initInline,
         loadContent,
         buildPptx,
         download,

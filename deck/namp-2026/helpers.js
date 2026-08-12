@@ -384,17 +384,28 @@ function formulaBox(sl, s, p, o) {
 // (typeof 로 감싸는 이유: 번들된 브라우저 코드에는 __dirname 이 없다)
 let ASSET_BASE = typeof __dirname === 'string' ? `${__dirname}/assets` : 'assets';
 
-/** 브라우저에서 assets 위치를 갈아끼운다. */
+/**
+ * 브라우저에서 assets 위치를 갈아끼운다.
+ * 문자열(접두사) 또는 이름 → URL 함수를 받는다. 함수를 쓰면 서버 없이 도는
+ * 단일 파일 데모처럼 자산을 data URI 로 끼워 넣을 수 있다.
+ */
 function setAssetBase(base) {
   ASSET_BASE = base;
 }
 
+function assetUrl(name) {
+  return typeof ASSET_BASE === 'function' ? ASSET_BASE(name) : `${ASSET_BASE}/${name}.png`;
+}
+
 function image(sl, s, p, o) {
+  const url = assetUrl(o.name);
+  // pptxgenjs 는 URL 은 path, 인라인 자산은 data 로 받는다.
+  const src = url.indexOf('data:') === 0 ? { data: url } : { path: url };
   sl.addImage({
     // altText 를 주지 않으면 pptxgenjs 가 소스 경로를 그대로 descr 에 박는다.
     // 그러면 납품 파일에 빌드한 사람의 절대 경로가 남고, CLI 와 웹 산출물도 갈린다.
     altText: o.name,
-    path: `${ASSET_BASE}/${o.name}.png`,
+    ...src,
     x: s.X(p.x), y: s.Y(p.y), w: s.W(p.w), h: s.H(p.h),
   });
 }
@@ -653,6 +664,6 @@ function dline(sl, s, p, o) {
 module.exports = {
   pill, panel, card, text, numBadge, goldBadge, arrowBadge,
   runHead, chapterBadge, titleBlock, quoteBand, formulaBox, footnote,
-  image, setAssetBase, accentCard, bandBar, roundRect, dline,
+  image, setAssetBase, assetUrl, accentCard, bandBar, roundRect, dline,
   vline, hline, timeline, chevron, arrowDown, bullets, richBullets, bigNum, txtOpts,
 };
