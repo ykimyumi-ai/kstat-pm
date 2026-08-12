@@ -65,13 +65,24 @@ function main() {
     .replace("url('fonts/KoPubDotum-Bold.woff') format('woff')",
       `url(data:font/woff;base64,${parts.fontB}) format('woff')`);
 
-  const html = `<style>
+  const html = `<title>제안서 원문 편집기</title>
+<style>
 ${css}
+/* 배너가 한 줄 더 붙으므로 높이를 계산식 대신 flex 로 나눈다.
+   (style.css 는 헤더 52px 만 있는 서버판 기준이다) */
+body { display: flex; flex-direction: column; }
+#cols { flex: 1; height: auto; min-height: 0; }
 #banner {
   background: #2a2418; color: #e8d9a8; padding: 8px 16px; font-size: 12px;
   border-bottom: 1px solid #4a3f28;
 }
 #banner b { color: #f0d78a; }
+/* 좁은 화면에서는 미리보기만 남기고 목록·폼을 아래로 흘린다 */
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  #cols { grid-template-columns: 1fr; height: auto; }
+  #list, #form { border: 0; border-top: 1px solid var(--line); }
+}
 </style>
 <div id="banner">
   <b>미리보기 데모</b> — 편집기와 같은 코드로 돕니다. 문구를 고치면 화면이 바로 바뀌고
