@@ -86,6 +86,28 @@ for _i, _cy in enumerate((495, 583, 670, 756, 842)):
 # 5장 도넛 가운데 아이콘 3개
 for _i, _cx in enumerate((885, 1115, 1379)):
     CROPS.append(('p3.png', f'g03-dn{_i + 1}', _cx, 1296, 72, 72))
+# ── 4장 ────────────────────────────────────────────────────
+CROPS += [
+    ('p4.png', 'g04-hero',       984,   16,  578,  216),
+    ('p4.png', 'g04-bldg',       302,  592,   96,  100),
+    ('p4.png', 'g04-people',    1086, 1436,  478,  192),
+    ('p4.png', 'g04-couple',    1150, 1850,   64,   64),
+    ('p4.png', 'g04-succ',       244, 1956,   92,   92),
+    ('p4.png', 'g04-clipboard',  102, 2270,   80,  108),
+]
+for _i, _y in enumerate((421, 501, 582, 662, 743)):        # 2 활용 분야
+    CROPS.append(('p4.png', f'g04-fld{_i + 1}', 720, _y, 76, 74))
+for _i, _y in enumerate((1030, 1107, 1184, 1259)):         # 3 도입 효과
+    CROPS.append(('p4.png', f'g04-eff{_i + 1}', 54, _y, 86, 60))
+for _i, _y in enumerate((1038, 1109, 1178, 1246, 1312)):   # 4 어려움
+    CROPS.append(('p4.png', f'g04-dif{_i + 1}', 572, _y, 72, 62))
+for _i, _y in enumerate((1046, 1114, 1182, 1249, 1317)):   # 5 필요 지원
+    CROPS.append(('p4.png', f'g04-sup{_i + 1}', 1062, _y, 74, 62))
+for _i, _y in enumerate((1822, 1904, 1983, 2058, 2135)):   # 05-2 메달
+    CROPS.append(('p4.png', f'g04-med{_i + 1}', 526, _y, 56, 76))
+for _i, _y in enumerate((2038, 2077, 2115, 2154, 2192)):   # 05-3 노후 준비 방법
+    CROPS.append(('p4.png', f'g04-old{_i + 1}', 1074, _y, 46, 40))
+
 # 6장 TOP3 아이콘 6개 (좌 3 · 우 3)
 for _i, _cy in enumerate((1902, 1977, 2052)):
     CROPS.append(('p3.png', f'g03-fa{_i + 1}', 58, _cy - 34, 68, 68))

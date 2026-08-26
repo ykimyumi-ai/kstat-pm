@@ -274,7 +274,7 @@ function chapterHead(sl, s, p, o) {
   if (o.sub) {
     text(sl, s, { x: p.tx, y: p.sy, w: p.sw || p.tw, h: p.sh }, {
       text: o.sub, fs: o.subFs, bold: true, color: o.subColor || C.TXT_MID,
-      align: 'left', valign: 'top', lsm: o.subLsm || 1.3, fit: o.subFit,
+      align: 'left', valign: 'top', lsm: o.subLsm || 1.3, fit: o.subFit, lines: o.subLines,
     });
   }
 }
@@ -302,10 +302,11 @@ function sectionHead(sl, s, p, o) {
     let f = o.fs;
     let nf = o.noteFs;
     const wide = () => inkWidth(o.title, f, true) + inkWidth(`  ${o.note}`, nf, true);
+    // 주석은 10pt 에서 멈추고 제목만 계속 줄인다 (원칙 15 — 둘 다 10pt 하한)
     for (let i = 0; i < 80 && wide() > s.W(tw) && f > MIN_PT; i += 1) {
       const k = (f - 0.4) / f;
       f = Math.round((f - 0.4) * 10) / 10;
-      nf = Math.round(nf * k * 10) / 10;
+      nf = Math.max(Math.round(nf * k * 10) / 10, MIN_PT);
     }
     sl.addText([
       { text: o.title, options: { fontFace: FONT_B, bold: true, fontSize: f, color: C.WHITE } },

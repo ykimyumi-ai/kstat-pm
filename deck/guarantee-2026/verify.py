@@ -30,9 +30,9 @@ MIN_PT = 10            # kstat-ppt 원칙 15 — 본문 최소 폰트
 FORBIDDEN_PRST = {'roundRect', 'round1Rect', 'round2SameRect', 'round2DiagRect'}
 
 # 장별 기대 차트 수 (레이아웃을 고칠 때 함께 고친다)
-EXPECT_CHARTS = {'g01': 1, 'g02': 2, 'g03': 8}
+EXPECT_CHARTS = {'g01': 1, 'g02': 2, 'g03': 8, 'g04': 7}
 # 장별 기대 이미지 수
-EXPECT_PICS = {'g01': 16, 'g02': 24, 'g03': 25}
+EXPECT_PICS = {'g01': 16, 'g02': 24, 'g03': 25, 'g04': 35}
 
 
 def norm(s):

@@ -4,4 +4,5 @@ module.exports = {
   g01: require('./g01'),
   g02: require('./g02'),
   g03: require('./g03'),
+  g04: require('./g04'),
 };
