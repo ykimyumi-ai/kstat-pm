@@ -54,9 +54,24 @@ function txtOpts(o) {
   };
 }
 
-/** 자유 텍스트. fit:true 면 줄바꿈 대신 폰트를 줄여 폭에 맞춘다. */
+/**
+ * 자유 텍스트.
+ *   fit:true    줄바꿈 대신 폰트를 줄여 폭에 맞춘다(한 줄짜리 라벨용).
+ *   lines:n     줄바꿈은 허용하되 n 줄을 넘지 않게 폰트를 줄인다(본문용).
+ *               원본이 2줄로 적어 둔 문장이 KoPub 폭 때문에 3줄로 접히는 것을 막는다.
+ */
 function text(sl, s, p, o) {
-  const fs = o.fit ? fit(o.text, o.fs, s.W(p.w), o.bold, o.pad) : o.fs;
+  let fs = o.fit ? fit(o.text, o.fs, s.W(p.w), o.bold, o.pad) : o.fs;
+  if (o.lines) {
+    const want = o.lines;
+    const paras = String(o.text).split('\n');
+    for (let i = 0; i < 100 && fs > MIN_PT; i += 1) {
+      const n = paras.reduce((a, t) => a + FM.lineCount(t, fs, s.W(p.w) - 0.03, o.bold), 0);
+      if (n <= want) break;
+      fs = Math.round((fs - 0.3) * 10) / 10;
+    }
+    fs = Math.max(fs, MIN_PT);   // 원칙 15 — 10pt 아래로는 내려가지 않는다
+  }
   sl.addText(o.text, {
     x: s.X(p.x), y: s.Y(p.y), w: s.W(p.w), h: s.H(p.h),
     ...txtOpts({ ...o, fs }),

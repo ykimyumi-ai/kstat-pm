@@ -66,6 +66,31 @@ for _i, _y in enumerate((1684, 1756, 1827, 1898, 1968)):
 for _i, _y in enumerate((1694, 1760, 1830, 1901, 1970)):
     CROPS.append(('p2.png', f'g02-rank{_i + 1}', 836, _y, 102, 74))
 
+# ── 3장 ────────────────────────────────────────────────────
+CROPS += [
+    ('p3.png', 'g03-hero',      1178,   26,  404,  222),
+    ('p3.png', 'g03-meet',       634,  556,  288,  162),   # 마주 앉은 두 사람
+    ('p3.png', 'g03-phone',      938,  580,   94,  136),
+    ('p3.png', 'g03-bubble',     580,  794,   94,   78),
+    ('p3.png', 'g03-clock',      834,  794,   94,   78),
+    ('p3.png', 'g03-coins',     1152,  512,  134,  142),
+    ('p3.png', 'g03-bldg',      1144,  740,  144,  136),
+    ('p3.png', 'g03-uparrow',    566, 1290,   64,   62),
+    ('p3.png', 'g03-clipboard',   90, 2268,   84,  106),
+    ('p3.png', 'g03-people',    1376, 2246,  196,  140),
+    ('p3.png', 'g03-bulb',        58, 2126,  100,   92),
+]
+# 1장 카드1 아이콘 5개 (막대 왼쪽)
+for _i, _cy in enumerate((495, 583, 670, 756, 842)):
+    CROPS.append(('p3.png', f'g03-ch{_i + 1}', 54, _cy - 32, 66, 64))
+# 5장 도넛 가운데 아이콘 3개
+for _i, _cx in enumerate((885, 1115, 1379)):
+    CROPS.append(('p3.png', f'g03-dn{_i + 1}', _cx, 1296, 72, 72))
+# 6장 TOP3 아이콘 6개 (좌 3 · 우 3)
+for _i, _cy in enumerate((1902, 1977, 2052)):
+    CROPS.append(('p3.png', f'g03-fa{_i + 1}', 58, _cy - 34, 68, 68))
+    CROPS.append(('p3.png', f'g03-fb{_i + 1}', 410, _cy - 32, 60, 64))
+
 
 def write_png(path, w, h, rgb):
     def chunk(t, d):

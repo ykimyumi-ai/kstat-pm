@@ -30,9 +30,9 @@ MIN_PT = 10            # kstat-ppt 원칙 15 — 본문 최소 폰트
 FORBIDDEN_PRST = {'roundRect', 'round1Rect', 'round2SameRect', 'round2DiagRect'}
 
 # 장별 기대 차트 수 (레이아웃을 고칠 때 함께 고친다)
-EXPECT_CHARTS = {'g01': 1, 'g02': 2}
+EXPECT_CHARTS = {'g01': 1, 'g02': 2, 'g03': 8}
 # 장별 기대 이미지 수
-EXPECT_PICS = {'g01': 16, 'g02': 24}
+EXPECT_PICS = {'g01': 16, 'g02': 24, 'g03': 25}
 
 
 def norm(s):
@@ -178,9 +178,15 @@ def main():
                     collect(v)
         collect(d)
         got_vals = [[round(float(v), 6) for v in c['vals']] for c in charts]
+        # 가로 막대는 첫 항목을 위에 두려고 배열을 뒤집어 넣는다(charts.js).
+        # 그래서 뒤집힌 순서도 일치로 본다.
         for wv in want_vals:
-            if not any(len(gv) == len(wv) and all(abs(a - b) < 1e-6 for a, b in zip(gv, wv))
-                       for gv in got_vals):
+            def same(gv, wv=wv):
+                if len(gv) != len(wv):
+                    return False
+                return (all(abs(a - b) < 1e-6 for a, b in zip(gv, wv))
+                        or all(abs(a - b) < 1e-6 for a, b in zip(gv, wv[::-1])))
+            if not any(same(gv) for gv in got_vals):
                 fails.append(f'{d["id"]}: 차트 값 {wv} 이(가) 산출물에 없다')
 
     # 편집용 워크북 — 없으면 '데이터 편집'이 열리지 않는다
