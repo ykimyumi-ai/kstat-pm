@@ -254,7 +254,7 @@ function chapterHead(sl, s, p, o) {
   });
   text(sl, s, { x: p.tx, y: p.ty, w: p.tw, h: p.th }, {
     text: o.title, fs: o.titleFs, bold: true, color: o.titleColor || C.NAVY_DEEP,
-    align: 'left', valign: 'middle', fit: true,
+    align: 'left', valign: 'middle', fit: o.titleFit !== false,
   });
   if (o.sub) {
     text(sl, s, { x: p.tx, y: p.sy, w: p.sw || p.tw, h: p.sh }, {
@@ -279,13 +279,29 @@ function sectionHead(sl, s, p, o) {
   text(sl, s, { x: p.x, y: p.y, w: bw, h: p.h }, {
     text: String(o.no), fs: o.noFs, bold: true, color: C.WHITE, align: 'center',
   });
-  text(sl, s, { x: p.x + bw + (o.gap || 14), y: p.y, w: p.w - bw - (o.gap || 14) - 10, h: p.h }, {
-    text: o.title, fs: o.fs, bold: true, color: C.WHITE, align: 'left', fit: true,
-  });
+  const tx = p.x + bw + (o.gap || 14);
+  const tw = p.w - bw - (o.gap || 14) - (o.pad === undefined ? 10 : o.pad);
   if (o.note) {
-    // 제목 오른쪽 괄호 주석은 한 단계 작게 붙는다
-    text(sl, s, { x: p.nx, y: p.y, w: p.nw, h: p.h }, {
-      text: o.note, fs: o.noteFs, bold: true, color: C.WHITE, align: 'left',
+    // 괄호 주석은 제목보다 한 단계 작게, 같은 줄에 이어 붙는다.
+    // 넘치면 둘을 같은 비율로 줄인다.
+    let f = o.fs;
+    let nf = o.noteFs;
+    const wide = () => inkWidth(o.title, f, true) + inkWidth(`  ${o.note}`, nf, true);
+    for (let i = 0; i < 80 && wide() > s.W(tw) && f > MIN_PT; i += 1) {
+      const k = (f - 0.4) / f;
+      f = Math.round((f - 0.4) * 10) / 10;
+      nf = Math.round(nf * k * 10) / 10;
+    }
+    sl.addText([
+      { text: o.title, options: { fontFace: FONT_B, bold: true, fontSize: f, color: C.WHITE } },
+      { text: `  ${o.note}`, options: { fontFace: FONT_B, bold: true, fontSize: nf, color: C.WHITE } },
+    ], {
+      x: s.X(tx), y: s.Y(p.y), w: s.W(tw), h: s.H(p.h),
+      ...txtOpts({ fs: f, align: 'left', valign: 'middle', bold: true, wrap: false }),
+    });
+  } else {
+    text(sl, s, { x: tx, y: p.y, w: tw, h: p.h }, {
+      text: o.title, fs: o.fs, bold: true, color: C.WHITE, align: 'left', fit: true,
     });
   }
 }
@@ -296,13 +312,54 @@ function noteBox(sl, s, p, o) {
     pres: o.pres, fill: o.fill || C.TINT_SOFT, rad: o.rad === undefined ? 14 : o.rad,
   });
   if (o.icon) image(sl, s, o.iconBox, { name: o.icon });
-  text(sl, s, {
-    x: p.x + (o.tx === undefined ? 96 : o.tx), y: p.y,
-    w: p.w - (o.tx === undefined ? 96 : o.tx) - 16, h: p.h,
-  }, {
-    text: o.text, fs: o.fs, bold: true, color: o.color || C.NAVY,
+  const tx = o.tx === undefined ? 96 : o.tx;
+  const tw = p.w - tx - (o.rpad === undefined ? 16 : o.rpad);
+  // 두 줄로 적혀 있어도 KoPub 이 넓어 접히면 세 줄이 된다. 가장 긴 줄에 맞춰 줄인다.
+  const longest = String(o.text).split('\n').reduce((a, b) => (b.length > a.length ? b : a), '');
+  const fs = fit(longest, o.fs, s.W(tw), true, 0.02);
+  text(sl, s, { x: p.x + tx, y: p.y, w: tw, h: p.h }, {
+    text: o.text, fs, bold: true, color: o.color || C.NAVY,
     align: 'left', lsm: o.lsm || 1.3,
   });
+}
+
+/**
+ * 7점 척도 눈금자 — 동그라미 7개 + 연결선, 고른 점(응답 평균의 반올림)은 진한 테두리,
+ * '보통(4)' 은 회색으로 채운다. 위에 삼각 마커가 붙는다.
+ */
+function scaleRuler(sl, s, p, o) {
+  const n = o.n || 7;
+  const step = (p.w - p.d) / (n - 1);
+  const cy = p.y + p.d / 2;
+  // 동그라미 사이를 잇는 가는 선 (동그라미보다 먼저 깔아야 뒤로 간다)
+  sl.addShape(o.pres.shapes.LINE, {
+    x: s.X(p.x + p.d), y: s.Y(cy), w: s.W(p.w - p.d * 2), h: 0,
+    line: { color: o.lineColor || 'DCE3EB', width: 1.5 },
+  });
+  for (let i = 0; i < n; i += 1) {
+    const cx = p.x + i * step;
+    const on = i + 1 === o.mark;
+    const mid = i + 1 === o.mid;
+    sl.addShape(o.pres.shapes.OVAL, {
+      x: s.X(cx), y: s.Y(p.y), w: s.W(p.d), h: s.H(p.d),
+      fill: { color: mid ? (o.midFill || C.GRAY) : C.WHITE },
+      line: { color: on ? (o.onColor || C.NAVY) : (o.offColor || 'D5DCE5'),
+        width: on ? 3.5 : 1.5 },
+    });
+    text(sl, s, { x: cx, y: p.y, w: p.d, h: p.d }, {
+      text: String(i + 1), fs: o.fs, bold: true, align: 'center',
+      color: mid ? C.WHITE : (on ? (o.onColor || C.NAVY) : (o.numColor || C.TXT_MID)),
+    });
+  }
+  if (o.mark) {
+    const cx = p.x + (o.mark - 1) * step + p.d / 2;
+    sl.addShape(o.pres.shapes.ISOSCELES_TRIANGLE, {
+      x: s.X(cx - o.mw / 2), y: s.Y(p.y - o.mgap - o.mh),
+      w: s.W(o.mw), h: s.H(o.mh),
+      fill: { color: o.onColor || C.NAVY }, line: { type: 'none' },
+      rotate: 180,
+    });
+  }
 }
 
 /** 하단 결론 밴드 — 진한 네이비 카드에 2줄, 둘째 줄은 노랑 강조. */
@@ -323,5 +380,5 @@ function conclusionBand(sl, s, p, o) {
 module.exports = {
   fit, fitBox, txtOpts, text, runs, bigValue, inkWidth,
   pill, roundRect, hline, vline, image, assetUrl, setAssetBase,
-  chapterHead, sectionHead, noteBox, conclusionBand,
+  chapterHead, sectionHead, noteBox, conclusionBand, scaleRuler,
 };
