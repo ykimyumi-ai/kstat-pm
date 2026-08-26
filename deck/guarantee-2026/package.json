@@ -1,0 +1,17 @@
+{
+  "name": "guarantee-2026-infographic",
+  "private": true,
+  "version": "1.0.0",
+  "description": "소상공인 실태조사 인포그래픽 4장 — 이미지 원본을 편집 가능한 PPTX(네이티브 차트 포함)로 재구성",
+  "scripts": {
+    "build": "node build.js",
+    "build:g01": "node build.js --only g01",
+    "build:g02": "node build.js --only g02",
+    "build:g03": "node build.js --only g03",
+    "build:g04": "node build.js --only g04",
+    "verify": "python3 verify.py",
+    "render": "bash ../namp-2026/tools/render.sh /tmp/guarantee-render",
+    "assets": "python3 tools/extract-assets.py src"
+  },
+  "comment": "pptxgenjs 는 ../namp-2026/node_modules 를 쓴다. 그쪽에서 npm install 하면 된다."
+}
