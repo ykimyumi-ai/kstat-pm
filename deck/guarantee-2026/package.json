@@ -9,9 +9,10 @@
     "build:g02": "node build.js --only g02",
     "build:g03": "node build.js --only g03",
     "build:g04": "node build.js --only g04",
-    "verify": "python3 verify.py",
-    "render": "bash ../namp-2026/tools/render.sh /tmp/guarantee-render",
-    "assets": "python3 tools/extract-assets.py src"
+    "verify": "node ../namp-2026/tools/py.js verify.py",
+    "render": "node ../namp-2026/tools/render.js --dpi 150",
+    "assets": "node ../namp-2026/tools/py.js tools/extract-assets.py src",
+    "doctor": "node ../namp-2026/tools/doctor.js"
   },
   "comment": "pptxgenjs 는 ../namp-2026/node_modules 를 쓴다. 그쪽에서 npm install 하면 된다."
 }

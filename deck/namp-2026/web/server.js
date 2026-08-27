@@ -15,6 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { execFile } = require('child_process');
+const pyenv = require('../tools/env');
 
 const ROOT = path.join(__dirname, '..');          // deck/namp-2026
 const WEB = __dirname;
@@ -185,12 +186,18 @@ function postVerify(req, res, url) {
     const ids = (url.searchParams.get('ids') || '').split(',').filter(Boolean);
     const tmp = path.join(require('os').tmpdir(), `deck-verify-${process.pid}-${Date.now()}.pptx`);
     fs.writeFileSync(tmp, buf);
-    const args = [path.join(ROOT, 'verify.py'), tmp];
+    // 윈도우에는 python3 가 없다(python 또는 py -3). 실행파일을 찾아서 쓴다.
+    const bin = pyenv.python();
+    if (!bin) {
+      fs.unlink(tmp, () => {});
+      return sendJson(res, 503, { error: '이 서버에 Python 3 이 없어 검증을 돌릴 수 없다' });
+    }
+    const args = [...pyenv.pythonArgs(bin), path.join(ROOT, 'verify.py'), tmp];
     if (ids.length) args.push('--ids', ids.join(','));
-    execFile('python3', args, { cwd: ROOT, timeout: 60000 }, (err, stdout, stderr) => {
+    execFile(bin, args, { cwd: ROOT, timeout: 60000 }, (err, stdout, stderr) => {
       fs.unlink(tmp, () => {});
       if (err && err.code === 'ENOENT') {
-        return sendJson(res, 503, { error: '이 서버에 python3 가 없어 검증을 돌릴 수 없다' });
+        return sendJson(res, 503, { error: '이 서버에서 Python 을 실행하지 못했다' });
       }
       sendJson(res, 200, {
         ok: !err || err.code === 0,

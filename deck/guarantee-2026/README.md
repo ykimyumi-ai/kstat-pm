@@ -8,12 +8,15 @@
 ```bash
 node build.js --only g01     # 1장만
 node build.js                # 전체
-python3 verify.py            # 구조·원문·차트 검증
-bash tools/render.sh /tmp/gr # 원본과 같은 크기(1600×2400)로 렌더
+npm run verify               # 구조·원문·차트 검증
+npm run render               # 원본과 같은 크기(1600×2400)로 렌더
+npm run doctor               # 이 PC 에 필요한 것이 다 있는지 점검
 ```
 
 pptxgenjs 는 옆 덱(`../namp-2026/node_modules`)의 것을 쓴다. 두 덱의 버전이 갈리면
 산출물도 갈리므로 일부러 하나만 둔다.
+
+윈도우·맥에서 처음 돌린다면 저장소 루트의 **`LOCAL.md`** 를 먼저 볼 것.
 
 ## 좌표계
 

@@ -148,11 +148,11 @@ npm run build:all && npm run verify -- out/<파일> --ids s20
 ## 검증
 
 ```bash
-python3 verify.py out/…발췌11p.pptx --ids s01,s02,s03,s04,s05,s06,s07,s08,s09,s10,s11
-python3 verify.py out/…작동지표_2p.pptx --ids s12,s13
-python3 verify.py out/…응답난이도_3p.pptx --ids s14,s15,s16
-python3 verify.py out/…2027승인연계_1p.pptx --ids s17
-bash tools/render.sh  # PPTX → PDF → 장별 PNG (눈으로 원본과 대조)
+npm run verify -- out/…발췌11p.pptx --ids s01,s02,s03,s04,s05,s06,s07,s08,s09,s10,s11
+npm run verify -- out/…작동지표_2p.pptx --ids s12,s13
+npm run verify -- out/…응답난이도_3p.pptx --ids s14,s15,s16
+npm run verify -- out/…2027승인연계_1p.pptx --ids s17
+npm run render        # PPTX → PDF → 장별 PNG (눈으로 원본과 대조)
 ```
 
 `verify.py`가 확인하는 것:
@@ -180,7 +180,9 @@ bash tools/render.sh  # PPTX → PDF → 장별 PNG (눈으로 원본과 대조)
 | `verify.py` | 구조·원문 자동 검증 |
 | `tools/measure.py` | 원본 PNG에서 도형·텍스트 좌표 실측 |
 | `tools/crop.py` | 원본 일부를 확대 저장(작은 글자 판독용) |
-| `tools/render.sh` | PPTX → PDF → PNG 렌더 |
+| `tools/render.js` | PPTX → PDF → PNG 렌더 (윈도우·맥·리눅스 공용) |
+| `tools/env.js` | LibreOffice·poppler·Python 실행파일 탐색 |
+| `tools/doctor.js` | 이 PC 환경 점검 |
 | `tools/extract-assets.py` | 원본에서 사진·아이콘을 잘라 `assets/` 로 저장 |
 
 ## 설계 메모
@@ -292,7 +294,7 @@ pill 색으로 팔레트값이 아니라 원본 실측색(`002677`·`9A835C`·`0
 
 ## 렌더 검증의 한계
 
-`tools/render.sh`는 LibreOffice로 렌더한다. 컨테이너에 KoPub돋움체를 설치해 두면
+`tools/render.js`는 LibreOffice로 렌더한다. KoPub돋움체를 설치해 두면
 실제 폰트로 검증되지만, LibreOffice와 PowerPoint는 자간·줄바꿈 규칙이 미세하게
 다르다. 배치 어긋남·겹침·잘림은 이 검증으로 잡히며, 마지막 확인은 실제 PowerPoint에서
 한 번 열어보는 것이 좋다.

@@ -11,15 +11,16 @@
     "build:outcome": "node build.js --preset outcome",
     "build:extra": "node build.js --preset extra",
     "build:search": "node build.js --preset search",
-    "build:all": "for k in full energy matrix roadmap outcome extra search; do node build.js --preset $k; done",
+    "build:all": "node tools/build-all.js",
     "build:web": "esbuild web/deck.js --bundle --format=iife --global-name=Deck --external:pptxgenjs --outfile=web/bundle.js --log-level=warning",
     "metrics": "node tools/gen-metrics.js",
     "metrics:check": "node tools/check-metrics.js",
-    "verify": "python3 verify.py",
-    "render": "bash tools/render.sh /tmp/namp-render",
+    "verify": "node tools/py.js verify.py",
+    "render": "node tools/render.js --dpi 140",
     "serve": "node web/server.js",
     "parity": "node tools/parity.js",
-    "demo": "node tools/make-demo.js"
+    "demo": "node tools/make-demo.js",
+    "doctor": "node tools/doctor.js"
   },
   "dependencies": {
     "pptxgenjs": "^4.0.1"
