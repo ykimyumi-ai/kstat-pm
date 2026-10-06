@@ -40,7 +40,14 @@
 
 ### 3-2. 기존 대장 이관
 
-`%USERPROFILE%\.claude\rules\error-log.md`와 `E:\클로드작업\CLAUDE.md`의 대장은 Drive에 없어서 이번 초기 병합(25건)에서 빠졌다. 둘 중 하나로 처리한다.
+`~/.claude/rules/error-log.md`와 `E:\클로드작업\CLAUDE.md`의 대장은 HANDOFF 문서에 경로가 **언급만 되어 있고, 실재는 확인되지 않았다**[미확인]. 2026-10-06에 사용자가 개인 PC의 C 드라이브를 확인했으나 찾지 못했다. HANDOFF에 `C:\Users\kstat\...` 경로가 나오는 것으로 보아 회사 PC에 있을 가능성이 있다[추론]. 그 PC의 PowerShell에서 다음 명령으로 찾는다.
+
+```powershell
+Get-ChildItem -Path C:\,E:\ -Recurse -Force -Filter "error-log*.md" -ErrorAction SilentlyContinue | Select-Object FullName, LastWriteTime
+Get-ChildItem -Path "$env:USERPROFILE\.claude\rules" -Force -ErrorAction SilentlyContinue
+```
+
+찾았으면 둘 중 하나로 처리한다. 끝내 찾지 못하면, 그 내용은 HANDOFF 등에 인용된 범위(FB-11·12·22)만 남은 것으로 보고 이관을 닫는다.
 
 - 파일을 `G:\내 드라이브\_피드백백로그\` 폴더에 복사한다. 그러면 다음 Claude 세션이 어느 환경에서든 읽어 병합한다.
 - 또는 로컬 Claude Code에서 "error-log.md를 피드백 백로그에 병합해"라고 지시한다.
