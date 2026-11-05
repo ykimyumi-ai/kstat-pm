@@ -21,12 +21,15 @@ def handoff_key(cwd: str) -> str:
     env = os.environ.get("HANDOFF_KEY")
     if env:
         return env.strip()
-    md = Path(cwd) / "CLAUDE.md"
-    if md.is_file():
-        m = re.search(r"핸드오프\s*키\s*[:：]\s*(\S+)", md.read_text(encoding="utf-8", errors="ignore"))
-        if m:
-            return m.group(1).strip()
-    return Path(cwd).name or "기본"
+    # 작업 폴더에서 위로 올라가며 「핸드오프 키」가 적힌 첫 CLAUDE.md를 찾는다(하위 폴더에서 시작해도 프로젝트 키를 쓴다)
+    here = Path(cwd).resolve()
+    for folder in [here, *here.parents]:
+        md = folder / "CLAUDE.md"
+        if md.is_file():
+            m = re.search(r"핸드오프\s*키\s*[:：]\s*(\S+)", md.read_text(encoding="utf-8", errors="ignore"))
+            if m:
+                return m.group(1).strip()
+    return here.name or "기본"
 
 
 WORK_TYPES = ["제안서", "조사설계", "데이터검증", "통계표", "보고서", "개별리포트", "기타", "자동"]
