@@ -1,27 +1,40 @@
-# standards — 작업 표준 (버전 관리본)
+# standards — 작업 표준과 하네스 (버전 관리본)
 
-Drive `/_피드백백로그/`에 올린 표준 파일의 버전 관리 사본이다. Drive 쪽이 작업 시 읽히는 사본이고, 이 저장소는 개정 이력을 남긴다.
+Drive `/_피드백백로그/`에 올린 표준의 버전 관리 사본과, 그 표준을 강제하는 스킬·훅·검사기를 둔다.
+
+## 하네스 배치 원칙
+
+| 무엇 | 어디에 | 컨텍스트 비용 | 이 저장소의 해당 파일 |
+|---|---|---|---|
+| 매번 필요한 최소 규칙 | 개인 지침(claude.ai) · `CLAUDE.md`(Claude Code) | 매 대화 전량 | `PERSONAL_INSTRUCTIONS_slim.md`(초안) · `../CLAUDE.md`(19줄) |
+| 작업 때만 필요한 절차 | 스킬(설명만 상주, 본문은 호출 시) | 호출 시만 | `skills/task-intake/` · `skills/proposal-writing/` |
+| 착수 시 읽는 규칙 요약 | Drive 표준 파일 | 착수 시 1회 | `ACTIVE_RULES.md` · `PROPOSAL_STANDARD.md` |
+| 반드시 막아야 할 것 | 훅(이벤트 때만 실행) | 0 | `hooks/guard.py` (`../.claude/settings.json`) |
+| 반복되는 문체 위반 | 검사기(완료 조건) | 실행 결과만 | `tools/proposal_style_check.py` |
+| 대량 탐색·독립 검증 | 서브에이전트 | 결론만 | `task-intake` 토큰 운용 규칙 |
+| 사건 기록 | 원장 `BACKLOG.md` + inbox | 0(읽지 않음, 검색만) | — |
+
+환경 제약: 훅은 Claude Code(로컬·클라우드)에서만 작동한다. claude.ai 채팅·Cowork에서는 스킬과 개인 지침이 유일한 장치이므로, 강제가 필요한 규칙은 검사기를 스킬에 넣어 「통과가 완료 조건」으로 건다.
+
+## 파일 목록
 
 | 파일 | 역할 | 버전 |
 |---|---|---|
-| `ACTIVE_RULES.md` | 모든 작업 착수 시 읽는 상시 규칙 26개 (원장 237행의 파생 요약) | v1.0 |
-| `PROPOSAL_STANDARD.md` | 제안서 작성 표준: 정본 2종 ID, 착수 절차, 쪽 규격, 문체, 검토 | v2.0 |
-| `skills/proposal-writing/SKILL.md` | proposal-writing 스킬 개정안 (기준선 커밋 대비 diff로 변경점 확인) | v2.0 |
-
-## 구조: 기록과 반영의 분리
-
-- `BACKLOG.md`(원장)는 **기록**하는 곳이다. 지적이 나오면 계속 원장이나 inbox에 적는다.
-- 이 폴더의 표준과 스킬은 **행동을 바꾸는** 곳이다. 2주에 한 번 원장의 승격후보를 여기로 옮기고 버전을 올린다.
-- 착수 시에는 원장 전문(약 40만 자)을 읽지 않는다. ACTIVE_RULES와 도메인 표준만 읽는다.
+| `ACTIVE_RULES.md` | 착수 시 읽는 상시 규칙 26개 (원장 237행의 파생 요약) | v1.0 |
+| `PROPOSAL_STANDARD.md` | 제안서 표준: 정본 2종 ID, 착수 절차, 쪽 규격, 문체, 검토 | v2.0 |
+| `PERSONAL_INSTRUCTIONS_slim.md` | 개인 지침 경량안과 이관 대응표 | 초안 v0.1(승인 대기) |
+| `skills/task-intake/SKILL.md` | 착수 문답 절차: 탐색 → 질문 1회 → 명세서 승인 → 무중단 실행 | v1.0 |
+| `skills/proposal-writing/` | 제안서 스킬 개정안 + 문체 검사기 동봉 | v2.0 |
+| `hooks/guard.py` | 비가역 명령·비밀 키 하드코딩 차단 훅 | v1.0 |
+| `tools/proposal_style_check.py` | 서술형 종결·내부 용어·AI 티 용어 차단, 조어·조사 경고 | v1.0 |
 
 ## 적용 절차 (사용자 작업)
 
-1. **스킬 재업로드:** claude.ai → 설정 → 스킬에서 `proposal-writing`을 `skills/proposal-writing/SKILL.md`로 교체한다. 로컬에 `references/` 8개 파일이 있으면 함께 묶어 올린다(현재 동기화본에는 없음).
-2. **개인 지침 교체:** 개인 지침의 `[피드백 백로그]` 문단을 아래 문안으로 바꾼다.
-
-```
-[작업 표준] 파일 산출물·분석·문서·검토 작업을 시작하기 전에 Google Drive /_피드백백로그/ACTIVE_RULES.md 를 읽고, 제안서 작업이면 PROPOSAL_STANDARD.md 도 읽는다. BACKLOG.md 전문은 읽지 않고 필요한 FB 행만 검색한다. 첫 답변 맨 앞에 「적용 표준: ACTIVE_RULES vX · (도메인 표준 vX) · 백로그 대조: FB-xx 해당/해당 없음」을 한 줄 적는다. 내가 오류·문체·판단을 지적하면 그 답변에서 바로 /_피드백백로그/inbox/ 에 FB_YYYYMMDD_HHMM_요지.md 를 만든다(양식은 BACKLOG.md §3). 단순 질문·잡담에는 적용하지 않는다.
-```
-
-3. **로컬 세션 훅:** 로컬 `backlog_brief.py`(SessionStart)가 원장 전문 대신 ACTIVE_RULES를 출력하도록 바꾼다(원장 §4).
-4. **정례 반영:** 2주에 한 번 「승격후보 반영」 작업을 요청해 표준·스킬 버전을 올린다.
+1. **스킬 업로드:** claude.ai 설정 → 스킬에서
+   - `skills/task-intake/` 폴더를 새로 올린다.
+   - `skills/proposal-writing/` 폴더(scripts 포함)로 기존 스킬을 교체한다. 로컬에 `references/` 8개 파일이 있으면 함께 묶는다.
+2. **개인 지침 교체:** `PERSONAL_INSTRUCTIONS_slim.md`의 교체 문안으로 바꾼다. 현재 문안은 먼저 사본을 보관한다.
+3. **로컬 Claude Code:**
+   - `hooks/guard.py`를 `~/.claude/settings.json`의 PreToolUse에 등록한다. Windows는 명령을 `python`으로 바꾼다.
+   - `backlog_brief.py`(SessionStart)가 원장 대신 ACTIVE_RULES 경로만 안내하도록 줄인다.
+4. **정례 반영:** 2주에 한 번 「승격후보 반영」을 요청해 표준·스킬 버전을 올린다. 규칙을 하나 넣으면 하나를 원장으로 내려 ACTIVE_RULES 30개 상한을 지킨다.
