@@ -29,8 +29,18 @@ def handoff_key(cwd: str) -> str:
     return Path(cwd).name or "기본"
 
 
+WORK_TYPES = ["제안서", "조사설계", "데이터검증", "통계표", "보고서", "개별리포트", "기타", "자동"]
+
+
 def list_handoffs(d: Path, key: str):
     if not d.is_dir():
         return []
     files = [p for p in d.glob(f"HANDOFF_{key}_*.md") if p.is_file()]
     return sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+def work_type(path: Path, key: str) -> str:
+    """HANDOFF_<키>_<업무>_YYYYMMDD_HHMM.md 에서 업무를 뽑는다. 업무가 없는 옛 형식은 「미분류」."""
+    rest = path.stem[len(f"HANDOFF_{key}_"):]
+    m = re.match(r"(.+?)_\d{8}_\d{4}$", rest)
+    return m.group(1) if m else "미분류"
