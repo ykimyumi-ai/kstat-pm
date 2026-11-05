@@ -1,4 +1,5 @@
 import json, subprocess, sys
+sys.stdout.reconfigure(encoding="utf-8")
 G = sys.argv[1]
 R = "r" + "m"
 cases = [
@@ -26,10 +27,10 @@ cases = [
 ]
 bad = 0
 for tool, tin, want in cases:
-    p = subprocess.run([sys.executable, G], input=json.dumps({"tool_name": tool, "tool_input": tin}), capture_output=True, text=True)
+    p = subprocess.run([sys.executable, G], input=json.dumps({"tool_name": tool, "tool_input": tin}), capture_output=True, text=True, encoding="utf-8")
     ok = p.returncode == want
     bad += not ok
     print("OK " if ok else "FAIL", tool, want, p.returncode, p.stderr.strip()[:60])
-p = subprocess.run([sys.executable, G], input="not json", capture_output=True, text=True)
+p = subprocess.run([sys.executable, G], input="not json", capture_output=True, text=True, encoding="utf-8")
 print("OK " if p.returncode == 0 else "FAIL", "broken input ->", p.returncode)
 print("failures:", bad)

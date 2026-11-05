@@ -9,6 +9,13 @@ import json
 import re
 import sys
 
+
+# Windows(cp949) 콘솔에서도 Claude Code가 읽는 UTF-8로 출력한다
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 BASH_RULES = [
     (r"\brm\s+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)\b", "rm -rf 금지 — 삭제 대신 _보관 폴더로 이동한다(FB-13)"),
     (r"\bgit\s+push\b.*(--force\b|\s-f\b)", "강제 푸시 금지 — 이력을 덮는다"),

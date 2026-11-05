@@ -8,6 +8,13 @@ import json
 import sys
 from pathlib import Path
 
+# Windows(cp949) 콘솔에서도 Claude Code가 읽는 UTF-8로 출력한다
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from handoff_common import handoff_dir, handoff_key, list_handoffs, work_type  # noqa: E402
 
