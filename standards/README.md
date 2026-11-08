@@ -23,9 +23,13 @@ Drive `/_피드백백로그/`에 올린 표준의 버전 관리 사본과, 그 �
 | `ACTIVE_RULES.md` | 착수 시 읽는 상시 규칙 26개 (원장 237행의 파생 요약) | v1.0 |
 | `PROPOSAL_STANDARD.md` | 제안서 표준: 정본 2종 ID, 착수 절차, 쪽 규격, 문체, 검토 | v2.0 |
 | `PERSONAL_INSTRUCTIONS_slim.md` | 개인 지침 경량안과 이관 대응표 | 초안 v0.1(승인 대기) |
-| `skills/task-intake/SKILL.md` | 착수 문답 절차 + 처리 경로 판정(단일 루프 기본) + 상태 인계 규격 | v1.1 |
+| `skills/task-intake/SKILL.md` | 착수 문답 절차 + 처리 경로 판정(단일 루프 기본) + 상태 인계 규격 + 토큰 예산과 자율 진행 상한 | v1.4 |
 | `skills/proposal-writing/` | 제안서 스킬 개정안 + 문체 검사기 동봉 | v2.0 |
 | `hooks/guard.py` | 비가역 명령·비밀 키 하드코딩 차단 훅 | v1.0 |
+| `hooks/token_guard.py` | 토큰 낭비 경고 훅(컨텍스트 30·50·70만, 감사 에이전트 4회마다, 큰 이미지·재독). 막지 않고 알린다 | v1.0 |
+| `hooks/hook_throttle.py` | 훅 알림 냉각 모듈 `should_fire(훅, 키, 초)`. 로컬 훅이 같은 알림을 반복하지 않게 한다 | v1.0 |
+| `hooks/test_token_guard.py` | token_guard·hook_throttle 시험 (`python3 standards/hooks/test_token_guard.py`) | v1.0 |
+| `upload/로컬설치_요청문_토큰가드.txt` | 로컬 PC에 토큰 가드를 설치하고 로컬 훅 4종에 냉각을 넣는 요청문 | v1.0 |
 | `tools/proposal_style_check.py` | 서술형 종결·내부 용어·AI 티 용어 차단, 조어·조사 경고 | v1.0 |
 
 ## 적용 절차 (사용자 작업)
