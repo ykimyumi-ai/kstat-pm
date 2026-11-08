@@ -30,6 +30,7 @@ Drive `/_피드백백로그/`에 올린 표준의 버전 관리 사본과, 그 �
 | `hooks/hook_throttle.py` | 훅 알림 냉각 모듈 `should_fire(훅, 키, 초)`. 로컬 훅이 같은 알림을 반복하지 않게 한다 | v1.0 |
 | `hooks/test_token_guard.py` | token_guard·hook_throttle 시험 (`python3 standards/hooks/test_token_guard.py`) | v1.0 |
 | `upload/로컬설치_요청문_토큰가드.txt` | 로컬 PC에 토큰 가드를 설치하고 로컬 훅 4종에 냉각을 넣는 요청문 | v1.0 |
+| `templates/야간실행.md` | 야간 무인 실행 키트: 적합성 판정 5문항, 야간 실행 명세서, 시작 프롬프트, 아침 확인 순서 | v1.0 |
 | `tools/proposal_style_check.py` | 서술형 종결·내부 용어·AI 티 용어 차단, 조어·조사 경고 | v1.0 |
 
 ## 적용 절차 (사용자 작업)
