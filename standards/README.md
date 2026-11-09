@@ -28,6 +28,8 @@ Drive `/_피드백백로그/`에 올린 표준의 버전 관리 사본과, 그 �
 | `hooks/guard.py` | 비가역 명령·비밀 키 하드코딩 차단 훅 | v1.0 |
 | `hooks/token_guard.py` | 토큰 낭비 경고 훅(컨텍스트 30·50·70만, 감사 에이전트 4회마다, 큰 이미지·재독). 막지 않고 알린다 | v1.0 |
 | `hooks/hook_throttle.py` | 훅 알림 냉각 모듈 `should_fire(훅, 키, 초)`. 로컬 훅이 같은 알림을 반복하지 않게 한다 | v1.0 |
+| `hooks/scope_guard.py` | 야간 무인 실행의 수정 허용 경로·새 파일 수 상한을 코드로 강제하는 훅. `.claude/night_scope.json`이 있을 때만 작동 | v1.0 |
+| `hooks/test_scope_guard.py` | scope_guard 시험 (`python3 standards/hooks/test_scope_guard.py`) | v1.0 |
 | `hooks/test_token_guard.py` | token_guard·hook_throttle 시험 (`python3 standards/hooks/test_token_guard.py`) | v1.0 |
 | `upload/로컬설치_요청문_토큰가드.txt` | 로컬 PC에 토큰 가드를 설치하고 로컬 훅 4종에 냉각을 넣는 요청문 | v1.0 |
 | `templates/야간실행.md` | 야간 무인 실행 키트: 적합성 판정 5문항, 야간 실행 명세서, 시작 프롬프트, 아침 확인 순서 | v1.0 |
